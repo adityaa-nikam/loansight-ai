@@ -54,45 +54,49 @@
                                                 └────────────────────┘  └────────────────────┘
 
 
-
-graph TD
-    subgraph ClientLayer ["🌐 Client Layer"]
-        CustomerApp["📱 Applicant Portal<br/><i>React 19 + Tailwind v4</i><br/>Port 5173"]
-        OfficerApp["👩‍💼 Officer Underwriting Workspace<br/><i>React 19 + RAG Copilot HUD</i><br/>Port 5173"]
+graph TB
+    subgraph Client["🌐 Client Layer"]
+        FE["📱 Applicant Portal<br/><i>React 19 + Tailwind v4</i><br/>Port 5173"]
+        OFF["👩‍💼 Officer Workspace<br/><i>React 19 + RAG Copilot HUD</i><br/>Port 5173"]
     end
 
-    subgraph ServerLayer ["⚡ Server Layer"]
-        ExpressAPI["⚙️ Express 4 API<br/>Port 5000"]
-        JWTAuth["🔐 JWT Auth<br/><i>bcrypt + Tokens</i>"]
-        Multer["📁 Multer<br/><i>Document Uploads</i>"]
-        AppEngine["🔄 Application Lifecycle<br/><i>State Machine & Audit Trail</i>"]
+    subgraph Server["⚡ Server Layer"]
+        API["📡 Express 4 API<br/>Port 5000"]
+        AUTH["🔐 JWT Auth<br/><i>bcrypt + tokens</i>"]
+        UPLOAD["📸 Multer<br/><i>Document uploads</i>"]
+        STORE["🔄 App Lifecycle Engine<br/><i>State machine & audit trail</i>"]
     end
 
-    subgraph DataLayer ["💾 Data Layer"]
-        MongoDB[("🍃 MongoDB<br/><i>Mongoose ODM</i>")]
-        UploadsStorage["📁 /uploads<br/><i>Static PDF/Image Files</i>"]
+    subgraph AIService["🤖 AI Microservice Layer"]
+        AI["🚀 FastAPI Service<br/>Port 8000"]
+        OCR["👁️ Tesseract OCR & PDFPlumber<br/><i>Field extraction</i>"]
+        FOIR["📊 Deterministic Engine<br/><i>FOIR math & risk score</i>"]
+        RAG["📚 ChromaDB Vector Store<br/><i>LangChain policy RAG</i>"]
     end
 
-    subgraph AILayer ["🤖 AI Microservice Layer"]
-        FastAPI["🚀 FastAPI Service<br/>Port 8000"]
-        OCR["👁️ Tesseract OCR & PDFPlumber<br/><i>Field Extraction</i>"]
-        FOIR["📊 Deterministic Engine<br/><i>FOIR Math & Discrepancies</i>"]
-        ChromaRAG["📚 ChromaDB Vector Store<br/><i>LangChain Bank Policy RAG</i>"]
-        LLM["🧠 Gemini / Groq API<br/><i>LLM Decision Reasoning</i>"]
+    subgraph Data["💾 Data Layer"]
+        DB[("🍃 MongoDB<br/><i>Mongoose ODM</i>")]
+        FS["📁 /uploads<br/><i>Static PDF files</i>"]
     end
 
-    CustomerApp -->|axios| ExpressAPI
-    OfficerApp -->|axios| ExpressAPI
-    ExpressAPI --> JWTAuth
-    ExpressAPI --> Multer
-    ExpressAPI --> AppEngine
-    ExpressAPI -->|mongoose| MongoDB
-    Multer --> UploadsStorage
-    ExpressAPI -->|HTTP REST| FastAPI
-    FastAPI --> OCR
-    FastAPI --> FOIR
-    FastAPI --> ChromaRAG
-    FastAPI --> LLM
+    FE -->|"axios"| API
+    OFF -->|"axios"| API
+    API --> AUTH
+    API --> UPLOAD
+    API --> STORE
+    API --> DB
+    UPLOAD --> FS
+    API -->|"/uploads/*"| FS
+    API -->|"HTTP REST"| AI
+    AI --> OCR
+    AI --> FOIR
+    AI --> RAG
+
+    style Client fill:#1a1a2e,stroke:#e94560,color:#fff
+    style Server fill:#0f3460,stroke:#e94560,color:#fff
+    style AIService fill:#1b262c,stroke:#00b4d8,color:#fff
+    style Data fill:#16213e,stroke:#e94560,color:#fff
+
 
 
 
