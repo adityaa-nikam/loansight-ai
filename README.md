@@ -55,6 +55,48 @@
 
 
 
+graph TD
+    subgraph ClientLayer ["🌐 Client Layer"]
+        CustomerApp["📱 Applicant Portal<br/><i>React 19 + Tailwind v4</i><br/>Port 5173"]
+        OfficerApp["👩‍💼 Officer Underwriting Workspace<br/><i>React 19 + RAG Copilot HUD</i><br/>Port 5173"]
+    end
+
+    subgraph ServerLayer ["⚡ Server Layer"]
+        ExpressAPI["⚙️ Express 4 API<br/>Port 5000"]
+        JWTAuth["🔐 JWT Auth<br/><i>bcrypt + Tokens</i>"]
+        Multer["📁 Multer<br/><i>Document Uploads</i>"]
+        AppEngine["🔄 Application Lifecycle<br/><i>State Machine & Audit Trail</i>"]
+    end
+
+    subgraph DataLayer ["💾 Data Layer"]
+        MongoDB[("🍃 MongoDB<br/><i>Mongoose ODM</i>")]
+        UploadsStorage["📁 /uploads<br/><i>Static PDF/Image Files</i>"]
+    end
+
+    subgraph AILayer ["🤖 AI Microservice Layer"]
+        FastAPI["🚀 FastAPI Service<br/>Port 8000"]
+        OCR["👁️ Tesseract OCR & PDFPlumber<br/><i>Field Extraction</i>"]
+        FOIR["📊 Deterministic Engine<br/><i>FOIR Math & Discrepancies</i>"]
+        ChromaRAG["📚 ChromaDB Vector Store<br/><i>LangChain Bank Policy RAG</i>"]
+        LLM["🧠 Gemini / Groq API<br/><i>LLM Decision Reasoning</i>"]
+    end
+
+    CustomerApp -->|axios| ExpressAPI
+    OfficerApp -->|axios| ExpressAPI
+    ExpressAPI --> JWTAuth
+    ExpressAPI --> Multer
+    ExpressAPI --> AppEngine
+    ExpressAPI -->|mongoose| MongoDB
+    Multer --> UploadsStorage
+    ExpressAPI -->|HTTP REST| FastAPI
+    FastAPI --> OCR
+    FastAPI --> FOIR
+    FastAPI --> ChromaRAG
+    FastAPI --> LLM
+
+
+
+
 ### Stack Breakdown
 
 | Layer | Technology | Purpose |
