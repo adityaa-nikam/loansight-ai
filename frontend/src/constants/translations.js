@@ -1,7 +1,7 @@
 export const LANGUAGES = [
   { code: 'en', label: 'English', nativeName: 'English', flag: '🇬🇧' },
   { code: 'hi', label: 'Hindi', nativeName: 'हिंदी', flag: '🇮🇳' },
-  { code: 'mr', label: 'Marathi', nativeName: 'मराठी', flag: '🚩' },
+  { code: 'mr', label: 'Marathi', nativeName: 'मराठी', flag: '🇮🇳' },
 ];
 
 export const TRANSLATIONS = {
@@ -60,10 +60,17 @@ export const TRANSLATIONS = {
     and_text: 'and',
     are_you_officer: 'Are you a bank loan officer?',
     access_officer_portal: 'Access Loan Officer Portal',
+    access_officer_workspace: 'Access Bank Officer Workspace',
+    underwriter_desc: 'Underwriter decisioning desk & AI RAG assistant',
     are_you_applicant: 'Are you a loan applicant?',
     access_applicant_portal: 'Access Applicant Portal',
+    track_status_desc: 'Track application status & document analysis',
     dont_have_account: "Don't have an account?",
     apply_new_customer: 'Apply as a New Customer',
+    demo_quick_select: 'Demo Quick Select:',
+    applicant_demo: 'Applicant Demo',
+    officer_demo: 'Officer Demo',
+    click_to_fill: 'Click to fill',
 
     // Registration
     register_title: 'Create Applicant Account',
@@ -300,10 +307,17 @@ export const TRANSLATIONS = {
     and_text: 'और',
     are_you_officer: 'क्या आप बैंक ऋण अधिकारी हैं?',
     access_officer_portal: 'ऋण अधिकारी पोर्टल खोलें',
+    access_officer_workspace: 'बैंक अधिकारी कार्यक्षेत्र खोलें',
+    underwriter_desc: 'अंडरराइटर निर्णय डेस्क और एआई आरएजी सहायक',
     are_you_applicant: 'क्या आप ऋण आवेदक हैं?',
     access_applicant_portal: 'आवेदक पोर्टल खोलें',
+    track_status_desc: 'आवेदन स्थिति और दस्तावेज़ विश्लेषण ट्रैक करें',
     dont_have_account: 'क्या आपका खाता नहीं है?',
     apply_new_customer: 'नए ग्राहक के रूप में आवेदन करें',
+    demo_quick_select: 'डेमो त्वरित चयन:',
+    applicant_demo: 'आवेदक डेमो',
+    officer_demo: 'अधिकारी डेमो',
+    click_to_fill: 'भरने के लिए क्लिक करें',
 
     // Registration
     register_title: 'आवेदक खाता बनाएं',
@@ -540,10 +554,17 @@ export const TRANSLATIONS = {
     and_text: 'आणि',
     are_you_officer: 'तुम्ही बँक कर्ज अधिकारी आहात का?',
     access_officer_portal: 'कर्ज अधिकारी पोर्टल उघडा',
+    access_officer_workspace: 'बँक अधिकारी कार्यक्षेत्र उघडा',
+    underwriter_desc: 'अंडररायटर निर्णय डेस्क आणि एआय आरएजी सहाय्यक',
     are_you_applicant: 'तुम्ही कर्ज अर्जदार आहात का?',
     access_applicant_portal: 'अर्जदार पोर्टल उघडा',
+    track_status_desc: 'अर्ज स्थिती आणि दस्तऐवज विश्लेषण पहा',
     dont_have_account: 'खाते नाही का?',
     apply_new_customer: 'नवीन ग्राहक म्हणून अर्ज करा',
+    demo_quick_select: 'डेमो जलद निवड:',
+    applicant_demo: 'अर्जदार डेमो',
+    officer_demo: 'अधिकारी डेमो',
+    click_to_fill: 'भरण्यासाठी क्लिक करा',
 
     // Registration
     register_title: 'नवीन अर्जदार खाते तयार करा',

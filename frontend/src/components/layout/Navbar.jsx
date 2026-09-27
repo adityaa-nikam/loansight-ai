@@ -37,25 +37,25 @@ export default function Navbar() {
     <nav
       className={`
         fixed top-0 left-0 right-0 z-50
-        transition-all duration-300
-        ${isScrolled ? 'glass shadow-soft' : 'bg-transparent'}
+        transition-all duration-200
+        ${isScrolled ? 'bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-subtle' : 'bg-transparent'}
       `}
       role="navigation"
       aria-label="Main navigation"
     >
       <Container>
-        <div className="flex items-center justify-between h-16 md:h-18">
+        <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <BrandLogo to={ROUTES.HOME} variant="dark" size="md" />
 
           {/* Desktop Links */}
           {isLanding && (
-            <div className="hidden md:flex items-center gap-8">
+            <div className="hidden md:flex items-center gap-6">
               {navLinks.map((link) => (
                 <a
                   key={link.href}
                   href={link.href}
-                  className="text-sm text-charcoal-600 hover:text-charcoal-900 transition-colors duration-200"
+                  className="text-xs font-semibold uppercase tracking-wider text-slate-600 hover:text-slate-900 transition-colors"
                 >
                   {link.label}
                 </a>
@@ -79,7 +79,7 @@ export default function Navbar() {
                   <Button variant="ghost" size="sm">{t('sign_in', 'Sign In')}</Button>
                 </Link>
                 <Link to={ROUTES.APPLY}>
-                  <Button variant="primary" size="sm">{t('start_application', 'Start Application')}</Button>
+                  <Button variant="navy" size="sm">{t('start_application', 'Start Application')}</Button>
                 </Link>
               </>
             )}
@@ -88,7 +88,7 @@ export default function Navbar() {
           {/* Mobile Toggle */}
           <button
             type="button"
-            className="md:hidden p-2 text-charcoal-700 hover:text-charcoal-900 transition-colors"
+            className="md:hidden p-2 text-slate-700 hover:text-slate-900 transition-colors cursor-pointer"
             onClick={() => setIsMobileOpen(!isMobileOpen)}
             aria-expanded={isMobileOpen}
             aria-label="Toggle navigation menu"
@@ -100,24 +100,24 @@ export default function Navbar() {
 
       {/* Mobile Menu */}
       {isMobileOpen && (
-        <div className="md:hidden glass border-t border-cream-300/40">
+        <div className="md:hidden bg-white border-b border-slate-200 shadow-panel">
           <Container>
             <div className="py-4 flex flex-col gap-2">
               {isLanding && navLinks.map((link) => (
                 <a
                   key={link.href}
                   href={link.href}
-                  className="py-2 text-sm text-charcoal-600 hover:text-charcoal-900 transition-colors"
+                  className="py-2 text-xs font-semibold uppercase tracking-wider text-slate-600 hover:text-slate-900 transition-colors"
                   onClick={() => setIsMobileOpen(false)}
                 >
                   {link.label}
                 </a>
               ))}
-              <div className="flex flex-col gap-2 pt-3 mt-2 border-t border-cream-300/40">
+              <div className="flex flex-col gap-2 pt-3 mt-2 border-t border-slate-200">
                 {user ? (
                   <>
                     <Link to={ROUTES.APPLICANT} onClick={() => setIsMobileOpen(false)}>
-                      <Button variant="primary" size="sm" className="w-full">{t('dashboard', 'Dashboard')}</Button>
+                      <Button variant="navy" size="sm" className="w-full">{t('dashboard', 'Dashboard')}</Button>
                     </Link>
                     <Button variant="secondary" size="sm" className="w-full" onClick={() => { logout(); setIsMobileOpen(false); }}>{t('sign_out', 'Sign Out')}</Button>
                   </>
@@ -127,7 +127,7 @@ export default function Navbar() {
                       <Button variant="secondary" size="sm" className="w-full">{t('sign_in', 'Sign In')}</Button>
                     </Link>
                     <Link to={ROUTES.APPLY} onClick={() => setIsMobileOpen(false)}>
-                      <Button variant="primary" size="sm" className="w-full">{t('start_application', 'Start Application')}</Button>
+                      <Button variant="navy" size="sm" className="w-full">{t('start_application', 'Start Application')}</Button>
                     </Link>
                   </>
                 )}
