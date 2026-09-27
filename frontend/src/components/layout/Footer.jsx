@@ -26,28 +26,28 @@ export default function Footer() {
   };
 
   return (
-    <footer className="border-t border-cream-300/60 bg-cream-100">
+    <footer className="border-t border-slate-800 bg-slate-950 text-slate-400">
       <Container>
-        <div className="py-16">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-10">
+        <div className="py-12 md:py-16">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {/* Brand Column */}
-            <div className="col-span-2 md:col-span-1">
-              <BrandLogo to={ROUTES.HOME} variant="dark" size="sm" />
-              <p className="mt-3 text-sm text-charcoal-500 leading-relaxed max-w-xs">
-                {t('footer_tagline', 'AI-powered document intelligence for faster, explainable loan processing.')}
+            <div className="col-span-2 md:col-span-1 space-y-3">
+              <BrandLogo to={ROUTES.HOME} variant="light" size="sm" />
+              <p className="text-xs text-slate-400 leading-relaxed max-w-xs">
+                {t('footer_tagline', 'Cross-document verification & policy-grounded loan underwriting intelligence.')}
               </p>
             </div>
 
             {/* Link Columns */}
             {Object.entries(footerLinks).map(([heading, links]) => (
               <div key={heading}>
-                <h4 className="text-sm font-semibold text-charcoal-900 mb-4">{heading}</h4>
-                <ul className="flex flex-col gap-2.5">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-200 mb-3">{heading}</h4>
+                <ul className="flex flex-col gap-2">
                   {links.map((link) => (
                     <li key={link.label}>
                       <a
                         href={link.href}
-                        className="text-sm text-charcoal-500 hover:text-charcoal-900 transition-colors duration-200"
+                        className="text-xs text-slate-400 hover:text-white transition-colors duration-150"
                       >
                         {link.label}
                       </a>
@@ -58,13 +58,9 @@ export default function Footer() {
             ))}
           </div>
 
-          <div className="mt-14 pt-6 border-t border-cream-300/60 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <p className="text-xs text-charcoal-400">
-              © {new Date().getFullYear()} LoanSight AI. All rights reserved.
-            </p>
-            <p className="text-xs text-charcoal-400">
-              {t('built_for_lending', 'Built for intelligent lending.')}
-            </p>
+          <div className="mt-12 pt-6 border-t border-slate-800/80 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-slate-500">
+            <p>© {new Date().getFullYear()} LoanSight AI. All rights reserved.</p>
+            <p>{t('built_for_lending', 'Built for intelligent loan underwriting.')}</p>
           </div>
         </div>
       </Container>

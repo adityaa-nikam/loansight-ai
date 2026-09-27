@@ -21,17 +21,17 @@ function NavContents({ actionRequiredCount, onNavigate }) {
   const { t } = useLanguage();
 
   const NAV_ITEMS = [
-    { key: 'dashboard', label: t('dashboard'), icon: LayoutDashboard, to: ROUTES.APPLICANT },
-    { key: 'apply', label: t('start_application'), icon: FilePlus2, to: ROUTES.APPLY },
+    { key: 'dashboard', label: t('dashboard', 'Dashboard'), icon: LayoutDashboard, to: ROUTES.APPLICANT },
+    { key: 'apply', label: t('start_application', 'Start Application'), icon: FilePlus2, to: ROUTES.APPLY },
     {
       key: 'applications',
-      label: t('current_application'),
+      label: t('current_application', 'Current Application'),
       icon: Files,
       to: `${ROUTES.APPLICANT}#applications`,
     },
     {
       key: 'action',
-      label: t('action_required'),
+      label: t('action_required', 'Action Required'),
       icon: AlertTriangle,
       to: ROUTES.ACTION_REQUIRED,
       badged: true,
@@ -54,9 +54,11 @@ function NavContents({ actionRequiredCount, onNavigate }) {
 
   return (
     <>
-      <div className="flex items-center gap-3 h-16 px-5 border-b border-white/5 shrink-0">
-        <BrandLogo to={null} variant="light" size="sm" showBadge={false} />
-        <span className="block text-[11px] text-slate-400 truncate">See the right loan, clearly.</span>
+      <div className="flex items-center justify-between h-16 px-5 border-b border-white/5 shrink-0">
+        <BrandLogo to={null} variant="light" size="sm" showBadge={true} />
+        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+          Applicant
+        </span>
       </div>
 
       <nav aria-label="Applicant navigation" className="px-3 pt-5">
@@ -113,7 +115,7 @@ function NavContents({ actionRequiredCount, onNavigate }) {
           className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white transition-colors cursor-pointer"
         >
           <LogOut className="w-[18px] h-[18px] shrink-0" aria-hidden="true" />
-          {t('sign_out')}
+          {t('sign_out', 'Sign Out')}
         </button>
       </div>
     </>

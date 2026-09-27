@@ -151,7 +151,7 @@ export default function OfficerStatusActionHub({
         type="button"
         disabled={updating || isApproved}
         onClick={() => onStatusChange('approved')}
-        className={`group relative inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 shadow-sm active:scale-95 cursor-pointer disabled:cursor-not-allowed ${
+        className={`group relative inline-flex items-center gap-2 px-4 py-2 rounded-md text-xs font-bold transition-all duration-200 shadow-sm active:scale-95 cursor-pointer disabled:cursor-not-allowed ${
           isApproved
             ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 opacity-90 shadow-none'
             : 'bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white shadow-emerald-600/20 hover:shadow-md hover:shadow-emerald-600/30'
@@ -175,7 +175,7 @@ export default function OfficerStatusActionHub({
         type="button"
         disabled={updating || isRejected}
         onClick={() => onStatusChange('rejected')}
-        className={`group relative inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all duration-200 shadow-sm active:scale-95 cursor-pointer disabled:cursor-not-allowed ${
+        className={`group relative inline-flex items-center gap-2 px-3.5 py-2 rounded-md text-xs font-bold transition-all duration-200 shadow-sm active:scale-95 cursor-pointer disabled:cursor-not-allowed ${
           isRejected
             ? 'bg-red-50 text-red-700 border border-red-200 opacity-90 shadow-none'
             : 'bg-white hover:bg-red-50 text-red-600 border border-red-200 hover:border-red-300 active:bg-red-100'
@@ -196,8 +196,8 @@ export default function OfficerStatusActionHub({
           type="button"
           disabled={updating}
           onClick={() => setIsOpen(!isOpen)}
-          className={`inline-flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-white border border-slate-200 hover:border-slate-300 text-slate-800 shadow-xs hover:shadow-sm transition-all duration-200 cursor-pointer active:scale-98 ${
-            isOpen ? 'ring-2 ring-indigo-500/20 border-indigo-400 bg-slate-50/50' : ''
+          className={`inline-flex items-center gap-2.5 px-3.5 py-2 rounded-md text-xs font-bold bg-white border border-slate-200 hover:border-slate-300 text-slate-800 shadow-2xs hover:shadow-sm transition-all duration-200 cursor-pointer active:scale-98 ${
+            isOpen ? 'ring-2 ring-emerald-500/20 border-emerald-500 bg-slate-50/50' : ''
           }`}
           aria-haspopup="listbox"
           aria-expanded={isOpen}
@@ -214,7 +214,7 @@ export default function OfficerStatusActionHub({
 
         {/* Dropdown Popover Panel */}
         {isOpen && (
-          <div className="absolute right-0 mt-2 w-72 origin-top-right bg-white rounded-2xl shadow-xl border border-slate-200/90 py-2 z-50 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-sm divide-y divide-slate-100">
+          <div className="absolute right-0 mt-2 w-72 origin-top-right bg-white rounded-md shadow-xl border border-slate-200/90 py-2 z-50 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-sm divide-y divide-slate-100">
             <div className="px-3.5 py-2">
               <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
                 Change Application State
@@ -238,7 +238,7 @@ export default function OfficerStatusActionHub({
                     }`}
                   >
                     <div
-                      className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 border ${opt.badgeBg}`}
+                      className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 mt-0.5 border ${opt.badgeBg}`}
                     >
                       <ItemIcon className="w-4 h-4" />
                     </div>
@@ -273,7 +273,7 @@ export default function OfficerStatusActionHub({
         type="button"
         onClick={onDelete}
         disabled={updating}
-        className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-slate-400 hover:text-red-600 hover:bg-red-50 active:bg-red-100 rounded-xl transition-all duration-200 border border-transparent hover:border-red-200 cursor-pointer disabled:opacity-50"
+        className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-slate-400 hover:text-red-600 hover:bg-red-50 active:bg-red-100 rounded-md transition-all duration-200 border border-transparent hover:border-red-200 cursor-pointer disabled:opacity-50"
         title="Delete Application Permanently"
       >
         <Trash2 className="w-3.5 h-3.5" />

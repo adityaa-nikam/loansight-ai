@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const axios = require('axios');
 const LoanApplication = require('../models/LoanApplication');
 const ValidationResult = require('../models/ValidationResult');
@@ -5,6 +6,7 @@ const Document = require('../models/Document');
 const User = require('../models/User');
 const config = require('../config');
 const { logActivity } = require('../utils/activityLogger');
+const applicationStore = require('../store/applicationStore');
 
 const AI_SERVICE_URL = config.aiServiceUrl || 'http://localhost:8000';
 
@@ -16,14 +18,16 @@ const _validationLocks = new Set();
  * Called when a document is replaced or reprocessed.
  */
 const markStale = async (applicationId) => {
-  try {
-    await ValidationResult.findOneAndUpdate(
-      { application: applicationId },
-      { status: 'STALE' }
-    );
-    console.log(`[Validation] Marked as STALE for application ${applicationId}`);
-  } catch (error) {
-    console.error(`[Validation] Failed to mark stale:`, error.message);
+  if (mongoose.connection.readyState === 1) {
+    try {
+      await ValidationResult.findOneAndUpdate(
+        { application: applicationId },
+        { status: 'STALE' }
+      );
+      console.log(`[Validation] Marked as STALE for application ${applicationId}`);
+    } catch (error) {
+      console.error(`[Validation] Failed to mark stale:`, error.message);
+    }
   }
 };
 
@@ -46,9 +50,20 @@ const runValidation = async (applicationId) => {
   _validationLocks.add(lockKey);
 
   try {
-    const application = await LoanApplication.findById(applicationId)
-      .populate('applicant', 'name email')
-      .populate('documents');
+    let application = null;
+    if (mongoose.connection.readyState === 1) {
+      try {
+        application = await LoanApplication.findById(applicationId)
+          .populate('applicant', 'name email')
+          .populate('documents');
+      } catch (err) {
+        console.warn('[Validation] DB lookup failed:', err.message);
+      }
+    }
+
+    if (!application) {
+      application = applicationStore.getApplicationById(applicationId);
+    }
 
     if (!application) {
       console.error(`[Validation] Application ${applicationId} not found.`);
@@ -56,7 +71,14 @@ const runValidation = async (applicationId) => {
     }
 
     // ── CACHE CHECK: Skip Groq if a valid (non-STALE) result already exists ──
-    const existingResult = await ValidationResult.findOne({ application: applicationId });
+    let existingResult = null;
+    if (mongoose.connection.readyState === 1) {
+      try {
+        existingResult = await ValidationResult.findOne({ application: applicationId });
+      } catch (e) {
+        // Ignore
+      }
+    }
     if (
       existingResult &&
       existingResult.status !== 'STALE' &&
