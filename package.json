@@ -1,0 +1,15 @@
+{
+  "name": "loanlens",
+  "version": "1.0.0",
+  "description": "LoanLens AI — AI-powered loan document intelligence platform",
+  "private": true,
+  "scripts": {
+    "frontend": "cd frontend && npm run dev",
+    "backend": "cd backend && npm run dev",
+    "ai-service": "cd ai-service && python -m uvicorn main:app --reload --port 8000",
+    "install:all": "cd backend && npm install && cd ../frontend && npm install",
+    "build:frontend": "cd frontend && npm run build"
+  },
+  "keywords": ["fintech", "loan", "ai", "document-intelligence"],
+  "license": "UNLICENSED"
+}

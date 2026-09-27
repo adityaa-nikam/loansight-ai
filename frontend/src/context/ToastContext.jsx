@@ -1,0 +1,138 @@
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { CheckCircle2, AlertTriangle, XCircle, Info, X } from 'lucide-react';
+
+const ToastContext = createContext(null);
+
+const VARIANTS = {
+  success: {
+    Icon: CheckCircle2,
+    iconClass: 'text-success-600',
+    iconBg: 'bg-success-100',
+    accent: 'border-l-success-500',
+  },
+  error: {
+    Icon: XCircle,
+    iconClass: 'text-error-600',
+    iconBg: 'bg-error-100',
+    accent: 'border-l-error-500',
+  },
+  warning: {
+    Icon: AlertTriangle,
+    iconClass: 'text-warning-600',
+    iconBg: 'bg-warning-100',
+    accent: 'border-l-warning-500',
+  },
+  info: {
+    Icon: Info,
+    iconClass: 'text-accent-600',
+    iconBg: 'bg-accent-100',
+    accent: 'border-l-accent-500',
+  },
+};
+
+const DEFAULT_DURATION = 5000;
+const ERROR_DURATION = 7000;
+const MAX_VISIBLE = 4;
+
+let nextId = 0;
+
+export function ToastProvider({ children }) {
+  const [toasts, setToasts] = useState([]);
+  const timersRef = useRef(new Map());
+
+  const dismiss = useCallback((id) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+    const timer = timersRef.current.get(id);
+    if (timer) {
+      clearTimeout(timer);
+      timersRef.current.delete(id);
+    }
+  }, []);
+
+  const push = useCallback((variant, message, options = {}) => {
+    const id = ++nextId;
+    const duration = options.duration ?? (variant === 'error' ? ERROR_DURATION : DEFAULT_DURATION);
+
+    setToasts((prev) => {
+      const next = [...prev, { id, variant, message, title: options.title }];
+      // Keep the newest few so a burst of failures cannot bury the screen.
+      return next.slice(-MAX_VISIBLE);
+    });
+
+    if (duration !== Infinity) {
+      timersRef.current.set(id, setTimeout(() => dismiss(id), duration));
+    }
+    return id;
+  }, [dismiss]);
+
+  // Clear every pending timer on unmount.
+  useEffect(() => {
+    const timers = timersRef.current;
+    return () => {
+      timers.forEach((t) => clearTimeout(t));
+      timers.clear();
+    };
+  }, []);
+
+  const toast = useMemo(() => ({
+    success: (message, options) => push('success', message, options),
+    error: (message, options) => push('error', message, options),
+    warning: (message, options) => push('warning', message, options),
+    info: (message, options) => push('info', message, options),
+    dismiss,
+  }), [push, dismiss]);
+
+  return (
+    <ToastContext.Provider value={toast}>
+      {children}
+      <div
+        className="fixed bottom-4 right-4 z-[100] flex flex-col gap-2.5 w-[calc(100vw-2rem)] max-w-sm pointer-events-none"
+        aria-live="polite"
+        aria-atomic="false"
+      >
+        {toasts.map((t) => {
+          const { Icon, iconClass, iconBg, accent } = VARIANTS[t.variant] || VARIANTS.info;
+          return (
+            <div
+              key={t.id}
+              role={t.variant === 'error' ? 'alert' : 'status'}
+              className={`
+                pointer-events-auto flex items-start gap-3 p-3.5 pr-2.5
+                bg-cream-50 border border-cream-300/70 border-l-4 ${accent}
+                rounded-xl shadow-elevated animate-slide-up
+              `}
+            >
+              <span className={`shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${iconBg}`}>
+                <Icon className={`w-4 h-4 ${iconClass}`} />
+              </span>
+              <div className="flex-1 min-w-0 pt-0.5">
+                {t.title && (
+                  <p className="text-sm font-semibold text-charcoal-900 leading-snug">{t.title}</p>
+                )}
+                <p className={`text-sm text-charcoal-600 leading-snug ${t.title ? 'mt-0.5' : ''}`}>
+                  {t.message}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => dismiss(t.id)}
+                aria-label="Dismiss notification"
+                className="shrink-0 p-1.5 rounded-md text-charcoal-400 hover:text-charcoal-700 hover:bg-cream-200 transition-colors cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </ToastContext.Provider>
+  );
+}
+
+export function useToast() {
+  const ctx = useContext(ToastContext);
+  if (!ctx) {
+    throw new Error('useToast must be used within a ToastProvider');
+  }
+  return ctx;
+}

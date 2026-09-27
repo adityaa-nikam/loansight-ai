@@ -1,0 +1,351 @@
+[
+  {
+    "id": "HDFC-PL-001",
+    "policyName": "HDFC Personal Loan Policy",
+    "category": "personal",
+    "section": "Basic Eligibility & Age Gate",
+    "rules": [
+      "Applicant must be between 21 and 60 years of age.",
+      "Applicant must be an employee of a Private Limited company, Public Sector Undertaking (PSU), central, state, or local government body.",
+      "Self-employed individuals are strictly NOT eligible for this personal loan product and should consider a Business Loan instead."
+    ],
+    "thresholds": {
+      "minAge": 21,
+      "maxAge": 60,
+      "eligibleEmploymentTypes": ["salaried"],
+      "ineligibleEmploymentTypes": ["self-employed", "business-owner"]
+    },
+    "keyRequirements": [
+      "Age proof (PAN/Aadhaar/Passport/Driving License)",
+      "Employment identity proof or official company email/ID"
+    ],
+    "citationUrl": "https://www.hdfc.bank.in/personal-loan/eligibility-criteria",
+    "sourceDocument": "HDFC Bank Loan Approval & Eligibility Criteria - Section 1"
+  },
+  {
+    "id": "HDFC-PL-002",
+    "policyName": "HDFC Personal Loan Policy",
+    "category": "personal",
+    "section": "Income & Work Experience Eligibility",
+    "rules": [
+      "Minimum net monthly income must be at least ₹25,000 for salaried applicants.",
+      "Minimum 2 years of total work experience required.",
+      "Minimum 1 year of continuous experience in the current organization.",
+      "Income materially affects the maximum eligible loan amount.",
+      "Salary credits must be verified across salary slips and bank statement credit entries."
+    ],
+    "thresholds": {
+      "minNetMonthlyIncome": 25000,
+      "minTotalExperienceYears": 2,
+      "minCurrentOrgExperienceYears": 1
+    },
+    "keyRequirements": [
+      "Latest 3 months salary slips",
+      "Latest 6 months bank statement showing regular salary credits",
+      "Form 16 or Appointment/Experience Letter"
+    ],
+    "citationUrl": "https://www.hdfc.bank.in/personal-loan/eligibility-criteria",
+    "sourceDocument": "HDFC Bank Loan Approval & Eligibility Criteria - Section 1"
+  },
+  {
+    "id": "HDFC-PL-003",
+    "policyName": "HDFC Personal Loan Policy",
+    "category": "personal",
+    "section": "Credit Assessment & Underwriting Conditions",
+    "rules": [
+      "HDFC's current eligibility criteria requires a minimum CIBIL / credit score of 720.",
+      "Repayment history and existing loan EMIs are critical creditworthiness factors.",
+      "Interest rate and approved loan terms depend on CIBIL score, principal amount, and requested tenure.",
+      "Meeting published criteria does not guarantee sanction; final approval is subject to document verification and credit underwriting."
+    ],
+    "thresholds": {
+      "minCreditScore": 720,
+      "maxTenureMonths": 60
+    },
+    "keyRequirements": [
+      "Credit report / CIBIL score check >= 720",
+      "No 30+ DPD (Days Past Due) or write-offs in the last 12 months"
+    ],
+    "citationUrl": "https://www.hdfc.bank.in/personal-loan",
+    "sourceDocument": "HDFC Bank Loan Approval & Eligibility Criteria - Section 1"
+  },
+  {
+    "id": "HDFC-HL-001",
+    "policyName": "HDFC Home Loan Policy",
+    "category": "home",
+    "section": "Core Eligibility & Repayment Capacity",
+    "rules": [
+      "Applicant income and repayment capacity are primary factors in determining eligibility.",
+      "Applicant age and remaining working/earning years are evaluated to fix maximum loan tenure (up to 30 years or retirement age, typically 60-65 years).",
+      "Financial position, income stability, and quality of income must be verified.",
+      "Credit history and credit score (minimum 700+ recommended) must be satisfactory.",
+      "Existing debts, running EMIs, and credit card liabilities are factored into debt-burden calculations."
+    ],
+    "thresholds": {
+      "minAge": 21,
+      "maxAgeAtMaturity": 65,
+      "minCreditScore": 700,
+      "maxTenureYears": 30
+    },
+    "keyRequirements": [
+      "Income tax returns (ITR) for last 2 years / Form 16",
+      "Salary slips for last 3-6 months",
+      "Bank statement for last 6 months"
+    ],
+    "citationUrl": "https://homeloans.hdfc.bank.in/housing-loans/home-loans/home-loan-process",
+    "sourceDocument": "HDFC Bank Loan Approval & Eligibility Criteria - Section 2"
+  },
+  {
+    "id": "HDFC-HL-002",
+    "policyName": "HDFC Home Loan Policy",
+    "category": "home",
+    "section": "Co-Applicant & Self-Employed Assessment",
+    "rules": [
+      "Spouse, parent, or earning co-applicant income can be pooled to enhance loan eligibility.",
+      "Academic qualification, dependants, assets/liabilities, savings history, and continuity of occupation are assessed.",
+      "For self-employed applicants, business sustainability, 2+ years profit track record, and bank account cash flow are additionally assessed.",
+      "A field credit investigation (FI) may involve a physical or telephonic visit to home/office to validate submitted details."
+    ],
+    "thresholds": {
+      "coApplicantAllowed": true,
+      "selfEmployedMinBusinessVintageYears": 3
+    },
+    "keyRequirements": [
+      "Co-applicant KYC and income documents",
+      "Business financials (P&L and Balance Sheet) for self-employed"
+    ],
+    "citationUrl": "https://homeloans.hdfc.bank.in/blog/home-finance/understanding-home-loan-eligibility",
+    "sourceDocument": "HDFC Bank Loan Approval & Eligibility Criteria - Section 2"
+  },
+  {
+    "id": "HDFC-HL-003",
+    "policyName": "HDFC Home Loan Policy",
+    "category": "home",
+    "section": "Property, Legal, Technical & Funding (LTV) Principle",
+    "rules": [
+      "Property documents are mandatory part of approval; property valuation and legal title clearance must be completed before disbursement.",
+      "Sanction letter communicates approved in-principle amount, but final disbursement requires technical/legal report satisfaction.",
+      "Funding principle requires borrower's own contribution (down payment). Standard LTV ranges up to 75%-80% of property market valuation."
+    ],
+    "thresholds": {
+      "maxLtvPercentage": 80,
+      "minOwnContributionPercentage": 20
+    },
+    "keyRequirements": [
+      "Title deed, approved building plan, chain of ownership documents",
+      "Property valuation and legal search report"
+    ],
+    "citationUrl": "https://homeloans.hdfc.bank.in/housing-loans/home-loans",
+    "sourceDocument": "HDFC Bank Loan Approval & Eligibility Criteria - Section 2"
+  },
+  {
+    "id": "HDFC-LAP-001",
+    "policyName": "HDFC Loan Against Property (LAP)",
+    "category": "lap",
+    "section": "Basic Eligibility & Profiles",
+    "rules": [
+      "Eligible borrower profiles include Salaried, Self-Employed individuals/professionals, and Non-Resident Indians (NRIs).",
+      "Age range is 21 to 65 years at maturity, resident Indian or eligible NRI.",
+      "Maximum tenure is up to 15 years (180 months).",
+      "A strong credit score and clean repayment track record are advised."
+    ],
+    "thresholds": {
+      "minAge": 21,
+      "maxAge": 65,
+      "maxTenureYears": 15,
+      "minCreditScore": 700
+    },
+    "keyRequirements": [
+      "Identity & address proofs",
+      "Income documents (Salary slips / ITRs / Audited financials)",
+      "Clear title property documents for collateral"
+    ],
+    "citationUrl": "https://www.hdfc.bank.in/loan-against-property/eligibility-criteria",
+    "sourceDocument": "HDFC Bank Loan Approval & Eligibility Criteria - Section 3"
+  },
+  {
+    "id": "HDFC-LAP-002",
+    "policyName": "HDFC Loan Against Property (LAP)",
+    "category": "lap",
+    "section": "Loan to Value (LTV) & Security Rules",
+    "rules": [
+      "LTV limit is up to 65% of the assessed property market value for the primary LAP product.",
+      "For existing HDFC customers: existing loan principal outstanding plus new LAP should generally not exceed 60% of assessed market value.",
+      "For new customers: LAP should generally not exceed 50% of assessed market value.",
+      "Pledged property serves as primary security; interim security or additional collateral may be required in high-ticket cases.",
+      "Approvals remain at the sole discretion of the bank subject to title investigation and valuation."
+    ],
+    "thresholds": {
+      "maxLtvGeneral": 65,
+      "maxLtvExistingCustomer": 60,
+      "maxLtvNewCustomer": 50
+    },
+    "keyRequirements": [
+      "Registered sale deed, NOC from society, property tax receipts",
+      "Independent technical valuation by bank-empaneled valuer"
+    ],
+    "citationUrl": "https://www.hdfc.bank.in/loan-against-property/documentation",
+    "sourceDocument": "HDFC Bank Loan Approval & Eligibility Criteria - Section 3"
+  },
+  {
+    "id": "HDFC-BL-001",
+    "policyName": "HDFC Business Loan Policy",
+    "category": "business",
+    "section": "Basic Eligibility Gates & Vintage",
+    "rules": [
+      "Nationality: Must be an Indian citizen.",
+      "Age: Minimum 21 years at application and not older than 65 years at loan maturity.",
+      "Eligible entities: Self-employed individuals, Sole Proprietors, Private Limited companies, Partnership firms, and LLPs engaged in manufacturing, trading, or services.",
+      "Minimum 3 years in current business and at least 5 years total business experience.",
+      "Business entity must have been profitable for the previous 2 consecutive financial years.",
+      "Minimum annual turnover of ₹40 lakh.",
+      "Minimum annual income as per ITR of ₹3 lakh."
+    ],
+    "thresholds": {
+      "minAge": 21,
+      "maxAge": 65,
+      "minCurrentBusinessVintageYears": 3,
+      "minTotalExperienceYears": 5,
+      "minTurnoverAnnual": 4000000,
+      "minAnnualIncomeItr": 300000,
+      "mustBeProfitableYears": 2
+    },
+    "keyRequirements": [
+      "Business registration certificate (GST, Udyam, Shop & Establishment)",
+      "CA-certified or audited Balance Sheet and P&L statements for last 2 years",
+      "Latest 2 years ITR with computation of income",
+      "Last 6-12 months current bank account statement",
+      "GST returns (GSTR-3B / GSTR-1)"
+    ],
+    "citationUrl": "https://www.hdfc.bank.in/business-loan/eligibility",
+    "sourceDocument": "HDFC Bank Loan Approval & Eligibility Criteria - Section 4"
+  },
+  {
+    "id": "HDFC-BL-002",
+    "policyName": "HDFC Business Loan Policy",
+    "category": "business",
+    "section": "Loan Amount, Tenure & Underwriting",
+    "rules": [
+      "Business loan amount can range up to ₹1 crore (100 lakh) depending on assessed financial eligibility and debt service capacity.",
+      "General tenure range is 12 to 48 months (1 to 4 years).",
+      "Identity and address proofs of promoters/directors must match application details exactly.",
+      "Banking cash flow and GST turnover match are inspected to verify business continuity.",
+      "Published thresholds do not guarantee approval; credit committee discretion applies."
+    ],
+    "thresholds": {
+      "maxLoanAmount": 10000000,
+      "minTenureMonths": 12,
+      "maxTenureMonths": 48
+    },
+    "keyRequirements": [
+      "Promoter KYC (PAN, Aadhaar)",
+      "Entity PAN, MOA/AOA or Partnership deed",
+      "Banking statements showing genuine business credits"
+    ],
+    "citationUrl": "https://www.hdfc.bank.in/business-loan/documentation",
+    "sourceDocument": "HDFC Bank Loan Approval & Eligibility Criteria - Section 4"
+  },
+  {
+    "id": "HDFC-EL-001",
+    "policyName": "HDFC Education Loan Policy",
+    "category": "education",
+    "section": "Standard Domestic Eligibility",
+    "rules": [
+      "Nationality: Must be an Indian citizen.",
+      "Age: 16 to 35 years for standard education loan.",
+      "A financial co-applicant is mandatory for all full-time courses (parent, legal guardian, spouse, or parent-in-law).",
+      "Admission must be secured through merit or recognized entrance examination.",
+      "Eligible programs include undergraduate, postgraduate degrees, and recognized diplomas from accredited institutions."
+    ],
+    "thresholds": {
+      "minAge": 16,
+      "maxAge": 35,
+      "coApplicantMandatory": true
+    },
+    "keyRequirements": [
+      "Admission offer letter with fee structure breakdown",
+      "Academic marksheets (10th, 12th, Graduation)",
+      "Co-applicant income proofs (salary slips, bank statement, or ITR)"
+    ],
+    "citationUrl": "https://www.hdfc.bank.in/education-loan",
+    "sourceDocument": "HDFC Bank Loan Approval & Eligibility Criteria - Section 5"
+  },
+  {
+    "id": "HDFC-EL-002",
+    "policyName": "HDFC Education Loan Policy",
+    "category": "education",
+    "section": "Foreign Education & Credila Norms",
+    "rules": [
+      "Borrower and co-applicant must be Indian citizens.",
+      "Co-borrower must maintain an active bank account with cheque-writing facilities in an Indian bank.",
+      "Confirmed admission and I-20 / CAS / admission letter required before disbursement.",
+      "Foreign education loans are offered through HDFC Credila and subject to Credila underwriting and collateral norms.",
+      "Collateral/tangible security may be required for high loan amounts (typically above ₹7.5 - ₹15 lakh)."
+    ],
+    "thresholds": {
+      "coApplicantMandatory": true,
+      "foreignEducationProvider": "HDFC Credila"
+    },
+    "keyRequirements": [
+      "Passport and Visa / Admission confirmation",
+      "Standardized test scores (GRE/GMAT/IELTS/TOEFL)",
+      "Collateral property documents if applicable"
+    ],
+    "citationUrl": "https://www.hdfc.bank.in/education-loan/foreign-education",
+    "sourceDocument": "HDFC Bank Loan Approval & Eligibility Criteria - Section 5"
+  },
+  {
+    "id": "HDFC-UW-001",
+    "policyName": "Bank Credit Underwriting & FOIR Rules",
+    "category": "underwriting",
+    "section": "FOIR (Fixed Obligation to Income Ratio) & Repayment Capacity",
+    "rules": [
+      "FOIR / Debt-to-Income calculation = (Existing Monthly EMIs + Proposed New Loan EMI) / Verified Net Monthly Income.",
+      "For Net Monthly Income < ₹50,000: Maximum permissible FOIR is 50%.",
+      "For Net Monthly Income ₹50,000 to ₹1,00,000: Maximum permissible FOIR is 55%.",
+      "For Net Monthly Income > ₹1,00,000: Maximum permissible FOIR is 65%.",
+      "Applications exceeding the maximum permissible FOIR cannot be approved for the requested amount and must be capped or declined."
+    ],
+    "thresholds": {
+      "tier1IncomeThreshold": 50000,
+      "tier1MaxFoir": 50,
+      "tier2IncomeThreshold": 100000,
+      "tier2MaxFoir": 55,
+      "tier3MaxFoir": 65
+    },
+    "keyRequirements": [
+      "Accurate calculation of all existing debt obligations from bank statement debits / CIBIL",
+      "Accurate calculation of proposed EMI based on tenure and interest rate"
+    ],
+    "citationUrl": "https://www.hdfc.bank.in/personal-loan/eligibility-criteria",
+    "sourceDocument": "Bank Underwriting Policy Guidelines"
+  },
+  {
+    "id": "HDFC-UW-002",
+    "policyName": "Bank Credit Underwriting & KYC Guidelines",
+    "category": "kyc_underwriting",
+    "section": "Document Consistency & Cross-Verification Guidelines",
+    "rules": [
+      "Identity consistency: Applicant name, DOB, and father's name on PAN card must match application details and Aadhaar card (Levenshtein similarity >= 85%).",
+      "Salary Variance: Variance between declared monthly income, payslip net salary, and bank statement salary credit must be <= 10%. Variance > 15% must be flagged for manual review.",
+      "Employer Verification: Employer name on salary slip must match Form 16 / Bank statement narration / application declaration.",
+      "Banking Health: Bank statement must not reflect cheque bounces / ECS returns (> 2 in 6 months is high risk). Minimum average monthly balance must be maintained.",
+      "Auditability: Every automated flag or exception must record the exact deterministic reason for audit trail.",
+      "Human Review: Final credit decision always rests with the human loan officer; GenAI provides decision support and grounded policy citations."
+    ],
+    "thresholds": {
+      "maxSalaryVariancePct": 10,
+      "flagSalaryVariancePct": 15,
+      "minNameSimilarityPct": 85,
+      "maxChequeBounces6Mo": 2
+    },
+    "keyRequirements": [
+      "PAN Card verification",
+      "Aadhaar / Address proof verification",
+      "Salary slip vs bank statement cross-matching",
+      "Form 16 / ITR tax computation cross-matching"
+    ],
+    "citationUrl": "https://www.hdfc.bank.in/personal-loan",
+    "sourceDocument": "Bank KYC & Risk Assessment Guidelines"
+  }
+]

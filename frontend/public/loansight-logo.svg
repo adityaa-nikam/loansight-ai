@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <defs>
+    <linearGradient id="ls-grad-1" x1="10%" y1="0%" x2="90%" y2="100%">
+      <stop offset="0%" stop-color="#00F5A0" />
+      <stop offset="60%" stop-color="#10B981" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+    <linearGradient id="ls-grad-2" x1="100%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#047857" />
+      <stop offset="50%" stop-color="#10B981" />
+      <stop offset="100%" stop-color="#00F5A0" />
+    </linearGradient>
+    <linearGradient id="ls-glow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00F5A0" stop-opacity="0.6" />
+      <stop offset="100%" stop-color="#059669" stop-opacity="0.1" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Background container (optional rounded tile) -->
+  <rect width="100" height="100" rx="24" fill="#0A0F1D" />
+  
+  <!-- Subtle ambient glow -->
+  <circle cx="50" cy="50" r="32" fill="url(#ls-glow)" filter="url(#glow)" opacity="0.35" />
+
+  <!-- Left / Upper Segment -->
+  <path
+    d="M 52 18 
+       C 40 18 28 28 24 40
+       C 20 52 24 66 33 76
+       L 46 86
+       C 39 78 37 68 40 58
+       C 43 48 50 36 54 28
+       Z"
+    fill="url(#ls-grad-1)"
+    filter="url(#glow)"
+  />
+
+  <!-- Right / Lower Segment -->
+  <path
+    d="M 58 24
+       C 64 32 76 44 78 56
+       C 80 68 74 80 62 86
+       L 48 86
+       C 60 84 66 74 65 62
+       C 64 50 56 36 50 20
+       Z"
+    fill="url(#ls-grad-2)"
+    filter="url(#glow)"
+  />
+
+  <!-- Inner Dynamic Teardrop/Lens Eye (The 'Sight' Focal Point) -->
+  <path
+    d="M 50 34
+       C 44 42 40 52 42 62
+       C 44 70 50 76 56 72
+       C 62 68 64 58 60 48
+       C 57 42 53 37 50 34
+       Z"
+    fill="#0A0F1D"
+  />
+</svg>
