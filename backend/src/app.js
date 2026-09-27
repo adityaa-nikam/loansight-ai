@@ -37,6 +37,9 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 // Routes
+app.get('/', (req, res) => {
+  res.json({ name: 'LoanSight API', status: 'online', version: '1.0.0' });
+});
 app.use('/api/health', healthRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/applications', applicationRoutes);
