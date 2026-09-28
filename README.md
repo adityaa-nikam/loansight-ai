@@ -10,128 +10,80 @@
 
 ---
 
-## ✨ Key Features & Capabilities
+## Project Overview
 
-### 👨‍💻 For Applicants
-- **Multi-Bank Application Flow**: Select lending partner bank, loan product (Personal, Home, Auto), requested amount, and tenure.
-- **Document Ingestion**: Encrypted upload for identity proofs (PAN, Aadhaar) and financial proofs (Payslips, Bank Statements).
-- **Real-Time Status Pipeline**: Instant tracking from `Submitted` to `Under Review` and `Approved`.
+LoanLens AI is an intelligent lending platform that will use AI-powered document analysis to enable faster, explainable loan processing. The platform supports document intelligence, cross-validation, risk assessment, and decision support for loan officers.
 
-### 👩‍💼 For Loan Officers (Underwriting Workspace)
-- **Unified Split-Pane Dashboard**: Inspect extracted financial metrics alongside original document previews.
-- **Automated Discrepancy Detection**: Instant cross-matching highlights name/salary mismatches across PAN and bank statements.
-- **Deterministic FOIR Engine**: Calculates Fixed Obligation to Income Ratio (FOIR), net disposable income, and EMI caps.
-- **Hybrid Vector RAG Assistant**: Query indexed bank underwriting manuals (ChromaDB + LangChain + Gemini/Groq) for policy-cited credit decision support.
-- **Immutable Audit Trail**: Append-only log tracking every status change, reprocessing event, and officer note.
+This repository contains the Stage 1 foundation: the application shell, design system, public landing page, authentication UI, applicant portal, loan application form, and Express/MongoDB backend.
 
 ---
 
-## 🏗 Architecture
+## Technology Stack
 
-```mermaid
-graph TB
-    subgraph Client["🌐 Client Layer"]
-        FE["📱 Applicant Portal<br/><i>React 19 + Tailwind v4</i><br/>Port 5173"]
-        OFF["👩‍💼 Officer Workspace<br/><i>React 19 + RAG Copilot HUD</i><br/>Port 5173"]
-    end
+### Frontend
+- React 19
+- Vite 8
+- Tailwind CSS 4
+- React Router 7
+- Axios
+- Lucide React (icons)
 
-    subgraph Server["⚡ Server Layer"]
-        API["📡 Express 4 API<br/>Port 5000"]
-        AUTH["🔐 JWT Auth<br/><i>bcrypt + tokens</i>"]
-        UPLOAD["📸 Multer<br/><i>Document uploads</i>"]
-        STORE["🔄 App Lifecycle Engine<br/><i>State machine & audit trail</i>"]
-    end
+### Backend
+- Node.js
+- Express 4
+- MongoDB / Mongoose 8
+- Helmet, CORS, Morgan
 
-    subgraph AIService["🤖 AI Microservice Layer"]
-        AI["🚀 FastAPI Service<br/>Port 8000"]
-        OCR["👁️ Tesseract OCR & PDFPlumber<br/><i>Field extraction</i>"]
-        FOIR["📊 Deterministic Engine<br/><i>FOIR math & risk score</i>"]
-        RAG["📚 ChromaDB Vector Store<br/><i>LangChain policy RAG</i>"]
-    end
-
-    subgraph Data["💾 Data Layer"]
-        DB[("🍃 MongoDB<br/><i>Mongoose ODM</i>")]
-        FS["📁 /uploads<br/><i>Static PDF files</i>"]
-    end
-
-    FE -->|"axios"| API
-    OFF -->|"axios"| API
-    API --> AUTH
-    API --> UPLOAD
-    API --> STORE
-    API --> DB
-    UPLOAD --> FS
-    API -->|"/uploads/*"| FS
-    API -->|"HTTP REST"| AI
-    AI --> OCR
-    AI --> FOIR
-    AI --> RAG
-
-    style Client fill:#1a1a2e,stroke:#e94560,color:#fff
-    style Server fill:#0f3460,stroke:#e94560,color:#fff
-    style AIService fill:#1b262c,stroke:#00b4d8,color:#fff
-    style Data fill:#16213e,stroke:#e94560,color:#fff
-```
-
-### Stack Breakdown
-
-| Layer | Technology | Purpose |
-| :--- | :--- | :--- |
-| **Frontend** | React 19, Vite 8, Tailwind CSS v4, Lucide Icons, React Router 7 | High-precision executive UI, Applicant Portal, Officer Underwriting Workspace |
-| **Backend API** | Node.js, Express 4, MongoDB, Mongoose 8, JWT, Multer | Core business logic, authentication, status state machine, upload storage |
-| **AI Service** | Python 3.11, FastAPI, Pydantic, Uvicorn | High-throughput AI microservice for OCR, extraction, and validation |
-| **OCR & Extraction**| Tesseract OCR, PDFPlumber, PyPDF | Extraction of names, monthly salary, account numbers, and DOB |
-| **RAG & Vector AI** | LangChain, ChromaDB, Google Gemini API, Groq LLM | Vector indexing of banking policy manuals & interactive Assistant Q&A |
+### Future (not yet implemented)
+- Python / FastAPI AI service
+- LangChain, ChromaDB
+- Document OCR & processing
 
 ---
 
 ## 📁 Repository Structure
 
 ```
-loansight/
-├── frontend/                  # React + Vite Application
+loanlens/
+├── frontend/              # React + Vite application
 │   ├── src/
-│   │   ├── components/        # Executive UI system & Officer widgets
-│   │   │   ├── common/        # Button, Modal, Drawer, Table, Toast, Confirm
-│   │   │   ├── layout/        # Navbar, Footer, Container
-│   │   │   ├── officer/       # OfficerSidebar, LoanAssistantChat, VerificationTab
-│   │   │   └── ui/            # DocumentRow, FileUpload, RiskIndicator, AIEvidenceBlock
-│   │   ├── context/           # AuthContext, ToastContext, ConfirmContext, LanguageContext
-│   │   ├── pages/             # Landing, Login, Register, ApplyLoan, Officer Pages
-│   │   └── services/          # Axios API service handlers
+│   │   ├── components/    # Reusable UI components
+│   │   │   ├── common/    # Button, Input, Select, Card, Badge, StatusBadge
+│   │   │   ├── layout/    # Navbar, Footer, Container, Section, PageHeader
+│   │   │   └── ui/        # HeroVisualization
+│   │   ├── pages/         # Landing, Login, Register, ApplicantPortal, ApplyLoan
+│   │   ├── layouts/       # AppLayout (authenticated shell)
+│   │   ├── services/      # API layer (api.js, applicationService.js)
+│   │   ├── hooks/         # useForm
+│   │   ├── utils/         # Validation utilities
+│   │   ├── constants/     # Routes, mock data
+│   │   └── routes/        # Route definitions
 │   └── package.json
 │
-├── backend/                   # Node.js Express API Server
+├── backend/               # Express API
 │   ├── src/
-│   │   ├── config/            # DB connection & server environment
-│   │   ├── controllers/       # Auth & Application controllers
-│   │   ├── middleware/        # JWT auth, error handlers, Multer upload
-│   │   ├── models/            # User & Application Mongoose schemas
-│   │   └── routes/            # REST API endpoints
-│   ├── uploads/               # Document storage directory
+│   │   ├── config/        # Environment config, DB connection
+│   │   ├── controllers/   # Request handlers
+│   │   ├── middleware/     # Error handling, validation
+│   │   ├── models/        # Mongoose schemas (User, LoanApplication)
+│   │   ├── routes/        # Route definitions
+│   │   ├── services/      # Business logic
+│   │   └── utils/         # ApiError
+│   ├── .env.example
 │   └── package.json
 │
-├── ai-service/                # Python FastAPI Microservice
-│   ├── main.py                # FastAPI entry point
-│   ├── services/              # Document extraction, RAG, Financial Validators
-│   │   ├── loan_officer_assistant.py  # RAG Assistant with safe-dict parsers
-│   │   ├── policy_rag.py              # ChromaDB vector index & embeddings
-│   │   ├── deterministic_validator.py # FOIR & credit rule calculations
-│   │   └── identity_parser.py         # PAN/Aadhaar & Salary parsing
-│   ├── data/                  # Sample bank policy PDFs & vector indexes
-│   └── requirements.txt
-└── README.md
+├── README.md
+├── .gitignore
+└── package.json
 ```
 
 ---
 
-## 🚀 Quick Start Guide
+## Prerequisites
 
-### Prerequisites
-- **Node.js**: v18.0.0+
-- **Python**: v3.10+
-- **MongoDB**: Local instance or MongoDB Atlas URI
-- **Tesseract OCR**: (Optional, for scanned image parsing)
+- Node.js 18+
+- npm 9+
+- MongoDB 6+ (local or Atlas)
 
 ---
 
@@ -145,100 +97,118 @@ cd loansight-main
 # Install Node backend dependencies
 cd backend && npm install
 
-# Install Frontend dependencies
-cd ../frontend && npm install
-
-# Install Python AI Service dependencies
-cd ../ai-service
-python -m venv .venv
-# On Windows:
-.venv\Scripts\activate
-# On macOS/Linux:
-source .venv/bin/activate
-pip install -r requirements.txt
+# Frontend
+cd frontend && npm install
 ```
 
 ---
 
-### 2️⃣ Configure Environment Variables
+## Running the Application
 
-Create `.env` files for each microservice:
+### Backend
 
-#### **Backend** (`backend/.env`)
-```env
-PORT=5000
-MONGODB_URI=mongodb://localhost:27017/loansight
-JWT_SECRET=your_jwt_secret_key_here
-CORS_ORIGIN=http://localhost:5173
-```
-
-#### **AI Service** (`ai-service/.env`)
-```env
-PORT=8000
-GEMINI_API_KEY=your_google_gemini_api_key
-GROQ_API_KEY=your_groq_api_key
-```
-
-#### **Frontend** (`frontend/.env`)
-```env
-VITE_API_BASE_URL=http://localhost:5000/api
-```
-
----
-
-### 3️⃣ Running the Microservices
-
-Open 3 terminal windows to launch the microservices concurrently:
-
-#### **Terminal 1: Express Backend**
 ```bash
 cd backend
-npm run dev
-# Running on http://localhost:5000
+cp .env.example .env    # Configure environment variables
+npm run dev             # Starts on http://localhost:5000
 ```
 
-#### **Terminal 2: Python AI Microservice**
-```bash
-cd ai-service
-# Activate virtual environment
-python -m uvicorn main:app --reload --port 8000
-# Running on http://localhost:8000
-```
+### Frontend
 
-#### **Terminal 3: React Frontend**
 ```bash
 cd frontend
-npm run dev
-# Running on http://localhost:5173
+npm run dev             # Starts on http://localhost:5173
 ```
 
----
-
-## 📑 API Endpoint Overview
-
-### Auth & Applications (`Express API`)
-- `POST /api/auth/register` — Register new user/officer
-- `POST /api/auth/login` — Sign in & retrieve JWT
-- `GET /api/applications` — List all submitted loan applications
-- `POST /api/applications` — Submit new application with documents
-- `GET /api/applications/:id` — Get application details & AI extraction
-- `PATCH /api/applications/:id/status` — Update underwriting status
-
-### AI Microservice (`FastAPI`)
-- `POST /api/v1/extract-documents` — Run OCR & financial parser
-- `POST /api/v1/validate` — Compute FOIR & discrepancy flags
-- `POST /api/v1/assistant/chat` — Query Vector RAG policy assistant
+The Vite dev server proxies `/api` requests to the backend automatically.
 
 ---
 
-## 🔐 Security & Governance
+## Environment Variables
 
-- **Data Privacy**: Local disk/AWS S3 encrypted file storage with strict access controls.
-- **Audit Compliance**: Immutable log entries for every credit decision, recalculation, and status update.
-- **Safe Evaluation**: Defensive data structures (`_safe_dict`, safe parsing) ensure zero server crashes on incomplete OCR inputs.
+### Backend (`backend/.env`)
+
+| Variable       | Description                    | Default                              |
+|----------------|--------------------------------|--------------------------------------|
+| `NODE_ENV`     | Environment mode               | `development`                        |
+| `PORT`         | Server port                    | `5000`                               |
+| `MONGODB_URI`  | MongoDB connection string      | `mongodb://localhost:27017/loanlens`  |
+| `CORS_ORIGIN`  | Allowed CORS origin            | `http://localhost:5173`              |
+
+### Frontend
+
+| Variable             | Description      | Default |
+|----------------------|------------------|---------|
+| `VITE_API_BASE_URL`  | API base URL     | `/api`  |
 
 ---
 
-## 📜 License
+## Available Routes
 
-Distributed under the MIT License. See `LICENSE` for more information.
+### Frontend
+
+| Route              | Description            |
+|--------------------|------------------------|
+| `/`                | Landing page           |
+| `/login`           | Sign in                |
+| `/register`        | Create account         |
+| `/applicant`       | Applicant dashboard    |
+| `/applicant/apply` | New loan application   |
+
+### API Endpoints
+
+| Method | Endpoint                | Description              |
+|--------|-------------------------|--------------------------|
+| GET    | `/api/health`           | Health check             |
+| POST   | `/api/applications`     | Create loan application  |
+| GET    | `/api/applications/:id` | Get application by ID    |
+
+---
+
+## MongoDB Configuration
+
+The application expects a MongoDB instance. For local development:
+
+1. Install and start MongoDB locally
+2. The default connection string is `mongodb://localhost:27017/loanlens`
+3. The database and collections are created automatically
+
+For MongoDB Atlas, update `MONGODB_URI` in your `.env` file with your connection string.
+
+**Note:** If `MONGODB_URI` is not set in development mode, the server will start without a database connection (with a warning). In production, it will fail with a clear error.
+
+---
+
+## Future Architecture
+
+```
+Applicant → React → Node/Express → MongoDB + Document Storage
+                                  → Python/FastAPI AI Service
+                                    → Document Processing
+                                    → Classification & OCR
+                                    → Financial Analysis
+                                    → Risk Assessment
+                                    → Explainable AI
+                                  → Loan Officer Review
+```
+
+The Python AI service will be introduced in future stages as an independent microservice communicating with the Node backend.
+
+---
+
+## What's NOT Implemented Yet
+
+The following are planned for future stages:
+
+- JWT authentication
+- Document upload & processing
+- OCR / document classification
+- Financial data extraction
+- Cross-document validation
+- Fraud/anomaly detection
+- Risk scoring & assessment
+- AI assistants (RAG, policy chat)
+- Loan officer dashboard
+- Admin dashboard
+- Audit trails & notifications
+- Python FastAPI AI service
