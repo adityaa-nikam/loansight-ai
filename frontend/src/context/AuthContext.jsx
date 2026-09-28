@@ -39,7 +39,11 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     const response = await api.post('/auth/login', { email, password });
+    const token = response.token || response.data?.token;
     const userData = response.data?.data || response.data;
+    if (token) {
+      localStorage.setItem('loansight_token', token);
+    }
     setUser(userData);
     if (userData) {
       localStorage.setItem('loansight_user', JSON.stringify(userData));
@@ -49,7 +53,11 @@ export function AuthProvider({ children }) {
 
   const register = async (name, email, password) => {
     const response = await api.post('/auth/register', { name, email, password });
+    const token = response.token || response.data?.token;
     const userData = response.data?.data || response.data;
+    if (token) {
+      localStorage.setItem('loansight_token', token);
+    }
     setUser(userData);
     if (userData) {
       localStorage.setItem('loansight_user', JSON.stringify(userData));
@@ -63,6 +71,7 @@ export function AuthProvider({ children }) {
     } catch (error) {
       console.error('Logout failed', error);
     } finally {
+      localStorage.removeItem('loansight_token');
       localStorage.removeItem('loansight_user');
       setUser(null);
     }

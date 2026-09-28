@@ -17,11 +17,12 @@ const sendTokenResponse = (user, statusCode, res) => {
     expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
     httpOnly: true,
     secure: config.nodeEnv === 'production',
-    sameSite: 'strict',
+    sameSite: config.nodeEnv === 'production' ? 'none' : 'lax',
   };
 
   res.status(statusCode).cookie('token', token, options).json({
     success: true,
+    token,
     data: user,
   });
 };
