@@ -21,7 +21,7 @@
 
 <br/>
 
-[**Live Demo**](https://loansight-main.vercel.app/) &nbsp;·&nbsp; [**Backend API**](https://loansight-main.onrender.com/) &nbsp;·&nbsp; [**Architecture**](#-architecture) &nbsp;·&nbsp; [**Getting Started**](#-getting-started) &nbsp;·&nbsp; [**API Reference**](#-api-reference)
+[**Live Demo**](https://loansight-main.vercel.app/) &nbsp;·&nbsp; [**Backend API**](https://loansight-main.onrender.com/) &nbsp;·&nbsp; [**Architecture**](#architecture) &nbsp;·&nbsp; [**Getting Started**](#-getting-started) &nbsp;·&nbsp; [**API Reference**](#-api-reference)
 
 </div>
 
@@ -71,7 +71,7 @@
 | **Immutable Audit Trail** | Append-only log of every status change, reprocessing event and officer note |
 
 ---
-
+<a id="architecture"></a>
 ## 🏗️ Architecture
 
 ```mermaid
@@ -341,6 +341,7 @@ npm run dev
 | :--- | :--- | :--- |
 | Frontend | Vercel | https://loansight-main.vercel.app/ |
 | Backend API | Render | https://loansight-main.onrender.com/ |
+| AI Service | Render | https://loansight-ai.onrender.com/docs |
 
 ---
 
