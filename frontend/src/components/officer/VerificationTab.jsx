@@ -380,61 +380,61 @@ const ExtractedDataTable = ({ checks, documents, app }) => {
   const evEmp = employerCheck?.evidence || {};
 
   // 1. Full Name values
-  const panName = panDoc.name || evName['PAN Card'] || evName['PAN'] || 'Rahul Sharma';
-  const aadhaarName = aadhaarDoc.name || evName['Aadhaar Card'] || evName['AADHAAR'] || 'Rahul Sharma';
-  const salaryName = salaryDoc.employee_name || evName['Salary Slip'] || evName['SALARY_SLIP'] || 'Rahul Sharma';
-  const bankName = bankDoc.account_holder || evName['Bank Statement'] || evName['STATEMENT'] || 'Rohit Sharma';
+  const panName = panDoc.name || evName['PAN Card'] || evName['PAN'] || (panDocObj ? 'Unreadable' : 'N/A (No Doc)');
+  const aadhaarName = aadhaarDoc.name || evName['Aadhaar Card'] || evName['AADHAAR'] || (aadhaarDocObj ? 'Unreadable' : 'N/A (No Doc)');
+  const salaryName = salaryDoc.employee_name || evName['Salary Slip'] || evName['SALARY_SLIP'] || (salaryDocObj ? 'Unreadable' : 'N/A (No Doc)');
+  const bankName = bankDoc.account_holder || evName['Bank Statement'] || evName['STATEMENT'] || (bankDocObj ? 'Unreadable' : 'N/A (No Doc)');
 
   // Verified Legal Name from identity docs
-  const verifiedLegalName = panName || aadhaarName || 'Rahul Sharma';
+  const verifiedLegalName = (panName !== 'N/A (No Doc)' && panName !== 'Unreadable') ? panName : ((aadhaarName !== 'N/A (No Doc)' && aadhaarName !== 'Unreadable') ? aadhaarName : app?.applicant?.name || 'N/A');
 
   // Mismatch logic
-  const allNames = [panName, aadhaarName, salaryName, bankName].filter(n => n && !n.startsWith('N/A'));
-  const hasMismatchWithFinancialDocs = allNames.some(
+  const allNames = [panName, aadhaarName, salaryName, bankName].filter(n => n && !n.startsWith('N/A') && n !== 'Unreadable');
+  const hasMismatchWithFinancialDocs = allNames.length > 1 && allNames.some(
     n => n.trim().toLowerCase() !== verifiedLegalName.trim().toLowerCase()
   );
   const isNameMismatch = hasMismatchWithFinancialDocs || nameCheck?.status === 'FLAGGED';
 
   // 2. Date of Birth values
-  const panDob = panDoc.date_of_birth || panDoc.dob || evDob['PAN Card'] || evDob['dob'] || '12/05/1992';
-  const aadhaarDob = aadhaarDoc.date_of_birth || aadhaarDoc.dob || evDob['Aadhaar Card'] || evDob['dob'] || '12/05/1992';
+  const panDob = panDoc.date_of_birth || panDoc.dob || evDob['PAN Card'] || evDob['dob'] || (panDocObj ? 'N/A' : 'N/A (No Doc)');
+  const aadhaarDob = aadhaarDoc.date_of_birth || aadhaarDoc.dob || evDob['Aadhaar Card'] || evDob['dob'] || (aadhaarDocObj ? 'N/A' : 'N/A (No Doc)');
   const salaryDob = salaryDoc.date_of_birth || salaryDoc.dob || 'N/A (Not on Doc)';
   const bankDob = bankDoc.date_of_birth || bankDoc.dob || 'N/A (Not on Doc)';
   const isDobMismatch = dobCheck?.status === 'FLAGGED';
 
   // 3. PAN Number values
-  const panNum = panDoc.pan_number || panDoc.pan || evPan['PAN Card'] || evPan['pan_number'] || app?.applicant?.pan || 'ABCPS1234F';
-  const aadhaarPan = aadhaarDoc.pan_number || 'ABCPS1234F (Linked)';
-  const salaryPan = salaryDoc.pan_number || evPan['Salary Slip'] || 'ABCPS1234F';
-  const bankPan = bankDoc.pan_number || evPan['Bank Statement'] || 'ABCDE1234F';
+  const panNum = panDoc.pan_number || panDoc.pan || evPan['PAN Card'] || evPan['pan_number'] || (panDocObj ? (app?.applicant?.pan || 'N/A') : 'N/A (No Doc)');
+  const aadhaarPan = aadhaarDoc.pan_number || (aadhaarDocObj ? 'Linked' : 'N/A (No Doc)');
+  const salaryPan = salaryDoc.pan_number || evPan['Salary Slip'] || (salaryDocObj ? 'N/A' : 'N/A (No Doc)');
+  const bankPan = bankDoc.pan_number || evPan['Bank Statement'] || (bankDocObj ? 'N/A' : 'N/A (No Doc)');
   const isPanMismatch = panCheck?.status === 'FLAGGED';
 
   // 4. Aadhaar Number values
-  const panAadhaar = panDoc.aadhaar_number || '987654321098 (Linked)';
-  const aadhaarNum = aadhaarDoc.aadhaar_number || aadhaarDoc.aadhaar || evAadhaar['aadhaar_number'] || evAadhaar['Aadhaar Card'] || app?.applicant?.aadhaar || '987654321098';
+  const panAadhaar = panDoc.aadhaar_number || (panDocObj ? 'Linked' : 'N/A (No Doc)');
+  const aadhaarNum = aadhaarDoc.aadhaar_number || aadhaarDoc.aadhaar || evAadhaar['aadhaar_number'] || evAadhaar['Aadhaar Card'] || (aadhaarDocObj ? (app?.applicant?.aadhaar || 'N/A') : 'N/A (No Doc)');
   const salaryAadhaar = salaryDoc.aadhaar_number || 'N/A (Not on Doc)';
   const bankAadhaar = bankDoc.aadhaar_number || 'N/A (Not on Doc)';
 
   // 5. Monthly Income / Salary Credit values
   const panInc = panDoc.income || 'N/A (Identity Doc)';
   const aadhaarInc = aadhaarDoc.income || 'N/A (Identity Doc)';
-  const rawSalary = salaryDoc.net_salary || salaryDoc.gross_salary || evInc['salary_slip_net'] || evInc['declared_monthly_income'] || app?.declaredMonthlyIncome || 85000;
-  const formatSalary = typeof rawSalary === 'number' ? `₹${rawSalary.toLocaleString('en-IN')}` : rawSalary ? (String(rawSalary).startsWith('₹') ? rawSalary : `₹${rawSalary}`) : '₹85,000';
+  const rawSalary = salaryDoc.net_salary || salaryDoc.gross_salary || evInc['salary_slip_net'] || evInc['declared_monthly_income'] || (salaryDocObj ? app?.declaredMonthlyIncome : null);
+  const formatSalary = rawSalary ? (typeof rawSalary === 'number' ? `₹${rawSalary.toLocaleString('en-IN')}` : (String(rawSalary).startsWith('₹') ? rawSalary : `₹${rawSalary}`)) : (salaryDocObj ? 'N/A' : 'N/A (No Doc)');
   const isIncomeMismatch = incomeCheck?.status === 'FLAGGED';
 
-  let bankCreditStr = '₹85,000';
+  let bankCreditStr = bankDocObj ? 'N/A' : 'N/A (No Doc)';
   if (evBank['bank_average_salary_credit']) {
     bankCreditStr = evBank['bank_average_salary_credit'];
   } else if (bankDoc.salary_credits?.length) {
     const avg = bankDoc.salary_credits.reduce((sum, c) => sum + (c.amount || 0), 0) / bankDoc.salary_credits.length;
     bankCreditStr = `₹${Math.round(avg).toLocaleString('en-IN')}`;
   } else if (bankDoc.net_salary || bankDoc.average_balance) {
-    bankCreditStr = bankDoc.net_salary ? `₹${bankDoc.net_salary.toLocaleString('en-IN')}` : formatSalary;
+    bankCreditStr = bankDoc.net_salary ? `₹${bankDoc.net_salary.toLocaleString('en-IN')}` : (formatSalary !== 'N/A (No Doc)' ? formatSalary : 'N/A');
   }
 
   // 6. Employer / Company Name values
-  const salaryEmp = salaryDoc.employer_name || salaryDoc.company || evEmp['Salary Slip'] || 'TCS / Corporate';
-  const bankEmp = bankDoc.employer_name || evEmp['Bank Statement'] || 'TCS Salary Disbursal';
+  const salaryEmp = salaryDoc.employer_name || salaryDoc.company || evEmp['Salary Slip'] || (salaryDocObj ? 'N/A' : 'N/A (No Doc)');
+  const bankEmp = bankDoc.employer_name || evEmp['Bank Statement'] || (bankDocObj ? 'N/A' : 'N/A (No Doc)');
   const isEmpMismatch = employerCheck?.status === 'FLAGGED';
 
   // Construct complete matrix rows
@@ -1014,24 +1014,18 @@ const VerificationTab = ({ applicationId, app, documents }) => {
     );
   }
 
-  if (!data || data.status === 'PENDING_DOCS') {
+  const docsList = documents || app?.documents || [];
+
+  if (!data || data.status === 'PENDING_DOCS' || docsList.length === 0) {
     return (
-      <div className="bg-white p-10 rounded-xl shadow-soft border border-cream-300 text-center text-charcoal-500 max-w-2xl mx-auto my-8">
+      <div className="bg-white p-10 rounded-2xl shadow-soft border border-cream-300 text-center text-charcoal-500 max-w-xl mx-auto my-8">
         <div className="w-14 h-14 rounded-full bg-cream-100 flex items-center justify-center mx-auto mb-4">
-          <Clock className="w-7 h-7 text-charcoal-400" />
+          <FileText className="w-7 h-7 text-charcoal-400" />
         </div>
-        <h3 className="text-lg font-bold text-charcoal-900 mb-2">Cross-Document Verification Pending</h3>
+        <h3 className="text-lg font-bold text-charcoal-900 mb-2">No Documents Uploaded Yet</h3>
         <p className="text-sm text-charcoal-600 mb-6 leading-relaxed">
-          Verification will run automatically once the applicant's required financial and identity documents have finished AI extraction.
+          The applicant has not uploaded any identity or financial documents yet. Cross-document AI extraction and risk verification will run automatically once documents are submitted.
         </p>
-        <button
-          onClick={handleRunVerification}
-          disabled={verifying}
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-accent-600 hover:bg-accent-700 text-white font-medium rounded-lg text-sm transition-colors shadow-sm disabled:opacity-50"
-        >
-          {verifying ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-          {verifying ? 'Running Verification...' : 'Run Verification Now'}
-        </button>
       </div>
     );
   }
@@ -1039,7 +1033,6 @@ const VerificationTab = ({ applicationId, app, documents }) => {
   const isStale = data.status === 'STALE';
   const isConsistent = data.status === 'CONSISTENT' || data.status === 'VERIFIED';
   const isReviewRequired = data.status === 'REVIEW_REQUIRED';
-  const docsList = documents || app?.documents || [];
 
   const checks = data.checks || [];
   const flaggedCount = checks.filter((c) => c.status === 'FLAGGED').length;

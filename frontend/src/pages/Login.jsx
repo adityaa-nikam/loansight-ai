@@ -54,12 +54,18 @@ export default function Login() {
     handleSubmit,
   } = useForm({
     initialValues: {
-      email: 'rohit.sharma@example.com',
-      password: 'Password123!',
+      email: '',
+      password: '',
     },
     validationRules,
     onSubmit: async (data) => {
       const authUser = await login(data.email, data.password);
+      if (activePortal === 'applicant' && authUser.role === 'officer') {
+        throw new Error('Invalid credentials. Bank officers must sign in via the Officer Workspace.');
+      }
+      if (activePortal === 'officer' && authUser.role === 'applicant') {
+        throw new Error('Invalid credentials. Applicants must sign in via the Applicant Portal.');
+      }
       const destination = authUser.role === 'officer' ? '/officer' : ROUTES.APPLICANT;
       navigate(location.state?.from?.pathname || destination, { replace: true });
     },
@@ -67,12 +73,12 @@ export default function Login() {
 
   const handleSwitchToOfficer = () => {
     setActivePortal('officer');
-    setValues({ email: 'officer@loanlens.ai', password: 'Password123!' });
+    setValues({ email: '', password: '' });
   };
 
   const handleSwitchToApplicant = () => {
     setActivePortal('applicant');
-    setValues({ email: 'rohit.sharma@example.com', password: 'Password123!' });
+    setValues({ email: '', password: '' });
   };
 
   return (
@@ -210,42 +216,7 @@ export default function Login() {
             </p>
           </div>
 
-          {/* Quick Demo Credentials Pill Bar */}
-          <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 space-y-1.5">
-            <div className="flex items-center justify-between text-[11px] font-medium text-slate-600">
-              <span className="flex items-center gap-1 font-semibold text-slate-700">
-                <Sparkles className="w-3.5 h-3.5 text-amber-500" /> {t('demo_quick_select', 'Demo Quick Select:')}
-              </span>
-              <span className="text-[10px] text-slate-400">{t('click_to_fill', 'Click to fill')}</span>
-            </div>
-            <div className="flex items-center gap-2 pt-0.5">
-              <button
-                type="button"
-                onClick={handleSwitchToApplicant}
-                className={`flex-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all text-left flex items-center justify-between cursor-pointer ${
-                  activePortal === 'applicant'
-                    ? 'bg-emerald-500 text-white shadow-xs'
-                    : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'
-                }`}
-              >
-                <span className="truncate">{t('applicant_demo', 'Applicant Demo')}</span>
-                {activePortal === 'applicant' && <CheckCircle2 className="w-3.5 h-3.5 shrink-0 ml-1" />}
-              </button>
 
-              <button
-                type="button"
-                onClick={handleSwitchToOfficer}
-                className={`flex-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all text-left flex items-center justify-between cursor-pointer ${
-                  activePortal === 'officer'
-                    ? 'bg-indigo-600 text-white shadow-xs'
-                    : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'
-                }`}
-              >
-                <span className="truncate">{t('officer_demo', 'Officer Demo')}</span>
-                {activePortal === 'officer' && <CheckCircle2 className="w-3.5 h-3.5 shrink-0 ml-1" />}
-              </button>
-            </div>
-          </div>
 
           {/* Form */}
           <form onSubmit={handleSubmit} noValidate className="space-y-4">
