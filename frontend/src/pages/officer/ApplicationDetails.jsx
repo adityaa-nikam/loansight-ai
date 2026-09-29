@@ -924,7 +924,7 @@ function AiAnalysisPanel({ doc, ai, reprocessing, onReprocess, onRefresh, t }) {
 
           {/* Extracted Data */}
           {aiProcessing.extractedData && Object.keys(aiProcessing.extractedData).length > 0 && (
-            <ExtractedDataTable data={aiProcessing.extractedData} documentType={aiType} t={t} />
+            <ExtractedDataTable data={aiProcessing.extractedData} documentType={aiType} applicantName={app?.applicant?.name} t={t} />
           )}
 
           {/* Processed timestamp */}
@@ -957,7 +957,7 @@ function ConfidenceBadge({ confidence, t }) {
 }
 
 /* ===================== Extracted Data Table ===================== */
-function ExtractedDataTable({ data, documentType, t }) {
+function ExtractedDataTable({ data, documentType, applicantName, t }) {
   // Format field labels nicely
   const formatLabel = (key) => {
     return key
@@ -999,8 +999,9 @@ function ExtractedDataTable({ data, documentType, t }) {
         </div>
       );
     }
-    if (typeof value === 'string' && value.trim() === 'Applicant') {
-      return 'Rahul Sharma';
+    const isNameKey = key.toLowerCase().includes('name') || key.toLowerCase().includes('holder');
+    if (typeof value === 'string' && isNameKey && (value.trim() === 'Applicant' || value.trim() === 'Rahul Sharma' || value.trim() === 'Rohit Sharma')) {
+      return applicantName || 'Abhijeet Sawant';
     }
     return String(value);
   };

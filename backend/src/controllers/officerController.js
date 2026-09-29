@@ -270,19 +270,8 @@ const getApplicationValidation = async (req, res, next) => {
       }
     }
 
-    if (!validation) {
-      return res.json({
-        status: 'PASSED',
-        verificationScore: 92,
-        riskLevel: 'LOW',
-        checks: [
-          { type: 'IDENTITY_NAME_MATCH', status: 'PASSED', message: 'Name matches across identity records', severity: 'HIGH' },
-          { type: 'DOB_CONSISTENCY', status: 'PASSED', message: 'Date of birth verified', severity: 'HIGH' },
-          { type: 'PAN_CONSISTENCY', status: 'PASSED', message: 'PAN pattern and checksum valid', severity: 'HIGH' },
-          { type: 'DECLARED_VS_SLIP_INCOME', status: 'PASSED', message: 'Declared income matches salary slip', severity: 'MEDIUM' }
-        ],
-        findings: []
-      });
+    if (!validation || !validation.checks || validation.checks.length === 0 || validation.verificationScore === 0) {
+      validation = await validationService.runValidation(req.params.id);
     }
     res.json(validation);
   } catch (error) {

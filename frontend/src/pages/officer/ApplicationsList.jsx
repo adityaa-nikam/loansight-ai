@@ -6,6 +6,7 @@ import { useToast } from '../../context/ToastContext';
 import { useConfirm } from '../../context/ConfirmContext';
 import { useLanguage } from '../../context/LanguageContext';
 import BankLogo from '../../components/common/BankLogo';
+import StatusBadge from '../../components/common/StatusBadge';
 import { ROUTES } from '../../constants/routes';
 import { LOAN_TYPE_DETAILS } from '../../constants/banks';
 import {
