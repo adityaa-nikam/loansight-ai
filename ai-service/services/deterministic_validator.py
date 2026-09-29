@@ -288,12 +288,11 @@ def run_deterministic_validation(
             ))
 
     # -------------------------------------------------------------------------
-    # 3. Aadhaar Verification
-    # -------------------------------------------------------------------------
     if aadhaar_data:
         aadhaar_num = aadhaar_data.get("aadhaar_number", "")
         aadhaar_formatted = aadhaar_num if aadhaar_num else "Not extracted"
-        aadhaar_valid = bool(aadhaar_num and len(re.sub(r"[^\d]", "", aadhaar_num)) == 12)
+        clean_digits = re.sub(r"[^\d]", "", aadhaar_num)
+        aadhaar_valid = bool(aadhaar_num and (len(clean_digits) == 12 or (len(clean_digits) == 4 and "X" in aadhaar_num.upper())))
 
         aadhaar_src_a = EvidenceSide(
             label="Aadhaar Card",
