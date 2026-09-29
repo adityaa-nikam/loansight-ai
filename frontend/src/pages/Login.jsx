@@ -335,7 +335,7 @@ export default function Login() {
               <p className="text-xs text-slate-500">
                 {t('dont_have_account', "Don't have an account?")}{' '}
                 <Link to={ROUTES.REGISTER} className="font-semibold text-emerald-700 hover:text-emerald-800 hover:underline">
-                  {t('apply_new_customer', 'Apply as a New Customer')}
+                  {t('apply_new_customer', 'Create a LoanSight Account')}
                 </Link>
               </p>
             </div>
@@ -344,7 +344,7 @@ export default function Login() {
 
         <div className="text-center text-[11px] text-slate-400 flex items-center justify-center gap-2 border-t border-slate-100 pt-4">
           <Shield className="w-3.5 h-3.5 text-emerald-600" />
-          Protected by Bank-Grade TLS 1.3 Encryption & Hardware Security Module
+          {t('protected_by_tls', 'Protected by Bank-Grade TLS 1.3 Encryption & Hardware Security Module')}
         </div>
       </div>
     </div>

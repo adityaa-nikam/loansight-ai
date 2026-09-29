@@ -1,6 +1,7 @@
 import { Menu, Search } from 'lucide-react';
 import NotificationBell from './NotificationBell';
 import LanguageSelector from '../common/LanguageSelector';
+import { useLanguage } from '../../context/LanguageContext';
 
 function initialsOf(name) {
   const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
@@ -16,6 +17,7 @@ export default function ApplicantTopbar({
   showSearch = true,
   onMenuClick = () => {},
 }) {
+  const { t } = useLanguage();
   const firstName = String(userName || '').trim().split(/\s+/)[0] || 'there';
 
   return (
@@ -32,10 +34,10 @@ export default function ApplicantTopbar({
 
         <div className="hidden sm:block min-w-0">
           <p className="text-[15px] font-semibold text-slate-900 leading-tight truncate">
-            Welcome back, {firstName}
+            {t('welcome_back', 'Welcome back')}, {firstName}
           </p>
           <p className="text-xs text-slate-400 truncate">
-            {subtitle || "Here's your loan activity at a glance."}
+            {subtitle || t('loan_activity_glance', "Here's your loan activity at a glance.")}
           </p>
         </div>
 
@@ -49,7 +51,7 @@ export default function ApplicantTopbar({
               type="search"
               value={searchTerm}
               onChange={(e) => onSearchChange(e.target.value)}
-              placeholder="Search applications, policies... (Press Ctrl+K)"
+              placeholder={t('search_applicant_placeholder', 'Search applications, policies... (Press Ctrl+K)')}
               aria-label="Search your applications"
               className="w-full pl-9 pr-14 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 focus:bg-white transition-colors"
             />

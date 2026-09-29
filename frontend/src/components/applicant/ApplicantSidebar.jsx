@@ -57,13 +57,13 @@ function NavContents({ actionRequiredCount, onNavigate }) {
       <div className="flex items-center justify-between h-16 px-5 border-b border-white/5 shrink-0">
         <BrandLogo to={null} variant="light" size="sm" showBadge={true} />
         <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-          Applicant
+          {t('applicant_badge', 'Applicant')}
         </span>
       </div>
 
       <nav aria-label="Applicant navigation" className="px-3 pt-5">
         <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 px-3 mb-2">
-          Menu
+          {t('menu', 'Menu')}
         </p>
         <ul className="space-y-1">
           {NAV_ITEMS.map((item) => {
@@ -102,10 +102,10 @@ function NavContents({ actionRequiredCount, onNavigate }) {
         <div className="bg-navy-800 border border-white/5 rounded-xl p-4">
           <div className="flex items-center gap-2 mb-1.5">
             <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" aria-hidden="true" />
-            <p className="text-sm font-semibold text-white">Verified &amp; Secure</p>
+            <p className="text-sm font-semibold text-white">{t('verified_and_secure', 'Verified & Secure')}</p>
           </div>
           <p className="text-[11px] text-slate-400 leading-relaxed">
-            Your documents are encrypted and reviewed only by authorised loan officers.
+            {t('applicant_security_notice', 'Your documents are encrypted and reviewed only by authorised loan officers.')}
           </p>
         </div>
 

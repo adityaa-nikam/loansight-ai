@@ -75,7 +75,7 @@ function NavContents({ counts, onNavigate }) {
       <div className="flex items-center justify-between h-16 px-5 border-b border-white/5 shrink-0">
         <BrandLogo to={null} variant="light" size="sm" showBadge={true} />
         <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
-          Officer
+          {t('officer_badge', 'Officer')}
         </span>
       </div>
 
@@ -154,11 +154,11 @@ function NavContents({ counts, onNavigate }) {
       <div className="mt-auto p-3 space-y-2">
         <div className="bg-navy-800 border border-white/5 rounded-xl p-3">
           <p className="text-xs font-medium text-white mb-1">
-            {initialsOf(user?.name) ? `Officer ${user?.name}` : 'Officer Workspace'}
+            {initialsOf(user?.name) ? `${t('officer_badge', 'Officer')} ${user?.name}` : t('officer_workspace', 'Officer Workspace')}
           </p>
           <p className="text-[11px] text-slate-400 leading-relaxed flex items-start gap-1.5">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-px" aria-hidden="true" />
-            Every decision you record is written to the application audit trail.
+            {t('officer_audit_notice', 'Every decision you record is written to the application audit trail.')}
           </p>
         </div>
 

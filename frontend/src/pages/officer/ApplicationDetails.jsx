@@ -16,38 +16,41 @@ import { officerService } from '../../services/officerService';
 import { getDocumentRequirements } from '../../constants/mockData';
 import { useToast } from '../../context/ToastContext';
 import { useConfirm } from '../../context/ConfirmContext';
+import { useLanguage } from '../../context/LanguageContext';
+import {
+  translateLoanType,
+  translateEmploymentType,
+  translateStatus,
+  translateDocType,
+} from '../../constants/translations';
 import { ROUTES } from '../../constants/routes';
 
 function formatAmount(amount) {
   return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount);
 }
 
-function formatDate(dateStr) {
+function formatDate(dateStr, lang) {
   if (!dateStr) return 'N/A';
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return 'N/A';
-  return d.toLocaleDateString('en-IN', {
+  const activeLang = lang || (typeof window !== 'undefined' ? localStorage.getItem('loanlens_language') : null) || 'en';
+  const locale = activeLang === 'mr' ? 'mr-IN' : activeLang === 'hi' ? 'hi-IN' : 'en-IN';
+  return d.toLocaleDateString(locale, {
     day: 'numeric', month: 'short', year: 'numeric',
     hour: '2-digit', minute: '2-digit',
   });
 }
 
-function formatShortDate(dateStr) {
+function formatShortDate(dateStr, lang) {
   if (!dateStr) return 'N/A';
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return 'N/A';
-  return d.toLocaleDateString('en-IN', {
+  const activeLang = lang || (typeof window !== 'undefined' ? localStorage.getItem('loanlens_language') : null) || 'en';
+  const locale = activeLang === 'mr' ? 'mr-IN' : activeLang === 'hi' ? 'hi-IN' : 'en-IN';
+  return d.toLocaleDateString(locale, {
     day: 'numeric', month: 'short',
   });
 }
-
-const TAB_OPTIONS = [
-  { key: 'overview', label: 'Overview', icon: Eye },
-  { key: 'documents', label: 'Documents', icon: FileText },
-  { key: 'verification', label: 'Verification', icon: CheckCircle2 },
-  { key: 'assistant', label: 'AI Loan Assistant', icon: Sparkles, badge: 'Hybrid RAG' },
-  { key: 'notes', label: 'Notes & Activity', icon: MessageSquare },
-];
 
 const STATUS_OPTIONS = [
   { value: 'draft', label: 'Draft' },
@@ -65,6 +68,7 @@ export default function ApplicationDetails() {
   const navigate = useNavigate();
   const toast = useToast();
   const confirm = useConfirm();
+  const { t } = useLanguage();
   const [app, setApp] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
@@ -303,28 +307,36 @@ export default function ApplicationDetails() {
     });
   });
 
+  const tabOptions = [
+    { key: 'overview', label: t('tab_overview', 'Overview'), icon: Eye },
+    { key: 'documents', label: t('tab_documents', 'Documents'), icon: FileText },
+    { key: 'verification', label: t('tab_verification', 'Verification'), icon: CheckCircle2 },
+    { key: 'assistant', label: t('tab_ai_assistant', 'AI Loan Assistant'), icon: Sparkles, badge: 'Hybrid RAG' },
+    { key: 'notes', label: t('tab_notes', 'Notes & Activity'), icon: MessageSquare },
+  ];
+
   return (
     <div className="animate-fade-in max-w-6xl mx-auto space-y-6">
       {/* Back Link */}
       <Link to="/officer/applications" className="inline-flex items-center text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors mb-1">
-        <ArrowLeft className="w-3.5 h-3.5 mr-1" /> Back to Applications
+        <ArrowLeft className="w-3.5 h-3.5 mr-1" /> {t('back_to_applications', '← Back to Applications')}
       </Link>
 
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-md border border-slate-200 shadow-sm">
         <div>
           <div className="flex items-center gap-2.5 flex-wrap mb-1">
-            <h1 className="text-xl font-bold text-slate-900">Application #{app._id.slice(-6)}</h1>
+            <h1 className="text-xl font-bold text-slate-900">{t('application_id', 'Application')} #{app._id.slice(-6)}</h1>
             <span className="text-xs font-bold px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 uppercase tracking-wide flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
               {app.bankName || 'HDFC Bank'}
             </span>
             <span className="text-xs font-semibold px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 uppercase tracking-wider font-mono">
-              {app.loanType} Loan
+              {translateLoanType(app.loanType, t)}
             </span>
           </div>
           <p className="text-xs text-slate-500 font-medium">
-            {app.applicant?.name} • Created {formatShortDate(app.createdAt)}
+            {app.applicant?.name} • {t('timeline_created', 'Created')} {formatShortDate(app.createdAt)}
           </p>
         </div>
         <OfficerStatusActionHub
@@ -338,7 +350,7 @@ export default function ApplicationDetails() {
       {/* Modern Segmented Navigation Tabs */}
       <div className="bg-slate-100/80 p-1.5 rounded-md border border-slate-200/80">
         <div className="flex gap-1 overflow-x-auto scrollbar-none">
-          {TAB_OPTIONS.map(tab => {
+          {tabOptions.map(tab => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.key;
             return (
@@ -371,7 +383,7 @@ export default function ApplicationDetails() {
       {/* Active Tab Content */}
       <div className="mt-6">
         {activeTab === 'overview' && (
-          <OverviewTab app={app} formatAmount={formatAmount} formatDate={formatDate} />
+          <OverviewTab app={app} formatAmount={formatAmount} formatDate={formatDate} t={t} />
         )}
         {activeTab === 'documents' && (
           <DocumentsTab
@@ -382,6 +394,7 @@ export default function ApplicationDetails() {
             onView={handleView}
             onReview={handleDocumentReview}
             reviewSubmitting={reviewSubmitting}
+            t={t}
           />
         )}
         {activeTab === 'verification' && (
@@ -522,38 +535,39 @@ export default function ApplicationDetails() {
 }
 
 /* ===================== Overview Tab ===================== */
-function OverviewTab({ app, formatAmount, formatDate }) {
+function OverviewTab({ app, formatAmount, formatDate, t }) {
   const applicantObj = typeof app?.applicant === 'object' && app?.applicant ? app.applicant : {};
   const applicantName = applicantObj.name || app?.applicantName || 'Rohit Sharma';
   const applicantEmail = applicantObj.email || app?.applicantEmail || 'rohit.sharma@example.com';
-  const applicantRole = applicantObj.role || 'Applicant';
+  const rawRole = applicantObj.role || 'Applicant';
+  const applicantRole = String(rawRole).toLowerCase() === 'applicant' ? (t ? t('applicant_role', 'Applicant') : 'Applicant') : rawRole;
 
   return (
     <div className="grid md:grid-cols-2 gap-6">
       <Card className="p-5 border-t-4 border-t-accent-500">
         <h3 className="text-sm font-semibold text-charcoal-900 flex items-center gap-2 mb-5">
-          <User className="w-4 h-4 text-charcoal-400" /> Applicant Information
+          <User className="w-4 h-4 text-charcoal-400" /> {t ? t('applicant_info', 'Applicant Information') : 'Applicant Information'}
         </h3>
         <div className="space-y-4">
-          <InfoRow label="Full Name" value={applicantName} />
-          <InfoRow label="Email Address" value={applicantEmail} />
-          <InfoRow label="Role" value={applicantRole} capitalize />
+          <InfoRow label={t ? t('full_name', 'Full Name') : 'Full Name'} value={applicantName} />
+          <InfoRow label={t ? t('email_address', 'Email Address') : 'Email Address'} value={applicantEmail} />
+          <InfoRow label={t ? t('role_label', 'Role') : 'Role'} value={applicantRole} capitalize />
         </div>
       </Card>
 
       <Card className="p-5 border-t-4 border-t-indigo-600">
         <h3 className="text-sm font-semibold text-charcoal-900 flex items-center gap-2 mb-5">
-          <Briefcase className="w-4 h-4 text-indigo-600" /> Lending Partner & Loan Details
+          <Briefcase className="w-4 h-4 text-indigo-600" /> {t ? t('lending_partner_loan_details', 'Lending Partner & Loan Details') : 'Lending Partner & Loan Details'}
         </h3>
         <div className="space-y-4">
-          <InfoRow label="Lending Partner / Bank" value={app.bankName || 'HDFC Bank'} />
-          <InfoRow label="Loan Type" value={`${app.loanType} Loan`} capitalize />
-          <InfoRow label="Requested Amount" value={formatAmount(app.requestedAmount)} />
-          <InfoRow label="Preferred Tenure" value={`${app.tenureMonths} months`} />
+          <InfoRow label={t ? t('lending_partner_bank', 'Lending Partner / Bank') : 'Lending Partner / Bank'} value={app.bankName || 'HDFC Bank'} />
+          <InfoRow label={t ? t('loan_type_label', 'Loan Type') : 'Loan Type'} value={translateLoanType(app.loanType, t)} />
+          <InfoRow label={t ? t('requested_amount_title', 'Requested Amount') : 'Requested Amount'} value={formatAmount(app.requestedAmount)} />
+          <InfoRow label={t ? t('preferred_tenure', 'Preferred Tenure') : 'Preferred Tenure'} value={`${app.tenureMonths} ${t ? t('months_suffix', 'months') : 'months'}`} />
           <div className="border-t border-cream-200 pt-3">
-            <InfoRow label="Employment Type" value={app.employmentType?.replace('-', ' ')} capitalize />
+            <InfoRow label={t ? t('employment_type_title', 'Employment Type') : 'Employment Type'} value={translateEmploymentType(app.employmentType, t)} />
             <div className="mt-3">
-              <InfoRow label="Declared Monthly Income" value={formatAmount(app.declaredMonthlyIncome)} />
+              <InfoRow label={t ? t('declared_monthly_income', 'Declared Monthly Income') : 'Declared Monthly Income'} value={formatAmount(app.declaredMonthlyIncome)} />
             </div>
           </div>
         </div>
@@ -561,13 +575,13 @@ function OverviewTab({ app, formatAmount, formatDate }) {
 
       <Card className="p-5 md:col-span-2">
         <h3 className="text-sm font-semibold text-charcoal-900 flex items-center gap-2 mb-5">
-          <Clock className="w-4 h-4 text-charcoal-400" /> Application Timeline
+          <Clock className="w-4 h-4 text-charcoal-400" /> {t ? t('application_timeline', 'Application Timeline') : 'Application Timeline'}
         </h3>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <InfoRow label="Created" value={formatDate(app.createdAt)} />
-          <InfoRow label="Last Updated" value={formatDate(app.updatedAt)} />
-          <InfoRow label="Documents" value={`${app.documents.length} uploaded`} />
-          <InfoRow label="Current Status" value={<StatusBadge status={app.status} />} />
+          <InfoRow label={t ? t('timeline_created', 'Created') : 'Created'} value={formatDate(app.createdAt)} />
+          <InfoRow label={t ? t('timeline_updated', 'Last Updated') : 'Last Updated'} value={formatDate(app.updatedAt)} />
+          <InfoRow label={t ? t('timeline_documents', 'Documents') : 'Documents'} value={`${app.documents.length} ${t ? t('uploaded_count_suffix', 'uploaded') : 'uploaded'}`} />
+          <InfoRow label={t ? t('current_status', 'Current Status') : 'Current Status'} value={<StatusBadge status={app.status} />} />
         </div>
       </Card>
     </div>
@@ -586,7 +600,7 @@ function InfoRow({ label, value, capitalize }) {
 }
 
 /* ===================== Documents Tab ===================== */
-function DocumentsTab({ app, requiredDocs, missingDocs, onDownload, onView, onReview, reviewSubmitting }) {
+function DocumentsTab({ app, requiredDocs, missingDocs, onDownload, onView, onReview, reviewSubmitting, t }) {
   const [expandedDoc, setExpandedDoc] = useState(null);
   const [aiData, setAiData] = useState({}); // { docId: { loading, data, error } }
   const [reprocessing, setReprocessing] = useState({});
@@ -631,10 +645,10 @@ function DocumentsTab({ app, requiredDocs, missingDocs, onDownload, onView, onRe
       <Card className="p-6">
         <div className="flex items-center justify-between mb-5">
           <h3 className="text-base font-semibold text-charcoal-900 flex items-center gap-2">
-            <FileText className="w-5 h-5 text-accent-600" /> Uploaded Documents
+            <FileText className="w-5 h-5 text-accent-600" /> {t ? t('uploaded_documents', 'Uploaded Documents') : 'Uploaded Documents'}
           </h3>
           <span className="text-xs font-medium bg-cream-200 text-charcoal-600 px-2.5 py-1 rounded-full">
-            {app.documents.length} files
+            {app.documents.length} {t ? t('files_count_suffix', 'files') : 'files'}
           </span>
         </div>
 
@@ -660,13 +674,13 @@ function DocumentsTab({ app, requiredDocs, missingDocs, onDownload, onView, onRe
                       <div>
                         <p className="text-sm font-medium text-charcoal-900">{doc.originalName}</p>
                         <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                          <span className="text-xs text-charcoal-500 capitalize">{doc.documentType.replace(/_/g, ' ')}</span>
+                          <span className="text-xs text-charcoal-500 capitalize">{translateDocType(doc.documentType, t)}</span>
                           <span className="text-xs text-charcoal-300">•</span>
                           <span className="text-xs text-charcoal-500">{(doc.size / 1024 / 1024).toFixed(2)} MB</span>
                           <span className="text-xs text-charcoal-300">•</span>
                           <span className="text-xs text-charcoal-500">{formatShortDate(doc.createdAt || doc.updatedAt || Date.now())}</span>
                           {/* AI status mini badge */}
-                          <AiStatusMini status={aiStatus} />
+                          <AiStatusMini status={aiStatus} t={t} />
                         </div>
                         {doc.status === 'rejected' && doc.reviewComment && (
                           <p className="text-xs text-error-600 mt-1.5 flex items-start gap-1">
@@ -680,33 +694,33 @@ function DocumentsTab({ app, requiredDocs, missingDocs, onDownload, onView, onRe
                     <div className="flex items-center gap-2 shrink-0">
                       {doc.status === 'approved' && (
                         <span className="text-xs font-medium text-success-600 bg-success-50 px-2 py-1 rounded-full flex items-center gap-1">
-                          <CheckCircle2 className="w-3 h-3" /> Approved
+                          <CheckCircle2 className="w-3 h-3" /> {t ? t('approved_badge', 'Approved') : 'Approved'}
                         </span>
                       )}
                       {doc.status === 'rejected' && (
                         <span className="text-xs font-medium text-error-600 bg-error-50 px-2 py-1 rounded-full flex items-center gap-1">
-                          <XCircle className="w-3 h-3" /> Rejected
+                          <XCircle className="w-3 h-3" /> {t ? t('rejected_badge', 'Rejected') : 'Rejected'}
                         </span>
                       )}
                       {doc.status === 'superseded' && (
                         <span className="text-xs font-medium text-slate-500 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-full flex items-center gap-1">
-                          Superseded
+                          {t ? t('superseded_badge', 'Superseded') : 'Superseded'}
                         </span>
                       )}
                       {doc.status === 'pending_review' && (
                         <>
                           <Button variant="ghost" size="sm" onClick={() => onReview(doc._id, 'approved')} disabled={reviewSubmitting} className="text-success-600 hover:bg-success-50">
-                            <CheckCircle2 className="w-4 h-4 mr-1" /> Approve
+                            <CheckCircle2 className="w-4 h-4 mr-1" /> {t ? t('approve_loan', 'Approve') : 'Approve'}
                           </Button>
                           <Button variant="ghost" size="sm" onClick={() => onReview(doc._id, 'rejected')} disabled={reviewSubmitting} className="text-error-600 hover:bg-error-50">
-                            <XCircle className="w-4 h-4 mr-1" /> Reject
+                            <XCircle className="w-4 h-4 mr-1" /> {t ? t('reject_loan', 'Reject') : 'Reject'}
                           </Button>
                         </>
                       )}
-                      <Button variant="ghost" size="sm" onClick={() => onView(doc._id, doc.originalName, doc.mimetype)} title="View / Preview">
+                      <Button variant="ghost" size="sm" onClick={() => onView(doc._id, doc.originalName, doc.mimetype)} title={t ? t('view_btn', 'View / Preview') : 'View / Preview'}>
                         <Eye className="w-4 h-4 text-accent-600" />
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => onDownload(doc._id, doc.originalName)} title="Download">
+                      <Button variant="ghost" size="sm" onClick={() => onDownload(doc._id, doc.originalName)} title={t ? t('download_btn', 'Download') : 'Download'}>
                         <Download className="w-4 h-4" />
                       </Button>
                       {/* AI Analysis toggle */}
@@ -734,6 +748,7 @@ function DocumentsTab({ app, requiredDocs, missingDocs, onDownload, onView, onRe
                         setAiData(prev => ({ ...prev, [doc._id]: undefined }));
                         fetchAiAnalysis(doc._id);
                       }}
+                      t={t}
                     />
                   )}
                 </div>
@@ -743,7 +758,7 @@ function DocumentsTab({ app, requiredDocs, missingDocs, onDownload, onView, onRe
         ) : (
           <div className="text-center py-12 bg-cream-50 rounded-lg border border-dashed border-cream-300">
             <Clock className="w-8 h-8 text-charcoal-300 mx-auto mb-3" />
-            <p className="text-sm font-medium text-charcoal-900">No documents uploaded yet</p>
+            <p className="text-sm font-medium text-charcoal-900">{t ? t('no_docs_uploaded', 'No documents uploaded yet') : 'No documents uploaded yet'}</p>
           </div>
         )}
       </Card>
@@ -752,7 +767,7 @@ function DocumentsTab({ app, requiredDocs, missingDocs, onDownload, onView, onRe
       {missingDocs.length > 0 && (
         <Card className="p-6 border-l-4 border-l-warning-500">
           <h3 className="text-sm font-semibold text-charcoal-900 flex items-center gap-2 mb-4">
-            <AlertTriangle className="w-4 h-4 text-warning-500" /> Missing Documents
+            <AlertTriangle className="w-4 h-4 text-warning-500" /> {t ? t('missing_documents', 'Missing Documents') : 'Missing Documents'}
           </h3>
           <div className="space-y-2">
             {missingDocs.map((doc) => (
@@ -761,7 +776,7 @@ function DocumentsTab({ app, requiredDocs, missingDocs, onDownload, onView, onRe
                   <AlertTriangle className="w-3 h-3 text-warning-600" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-charcoal-900">{doc.label}</p>
+                  <p className="text-sm font-medium text-charcoal-900">{translateDocType(doc.type, t) || doc.label}</p>
                   <p className="text-xs text-charcoal-500">{doc.description}</p>
                 </div>
               </div>
@@ -774,11 +789,11 @@ function DocumentsTab({ app, requiredDocs, missingDocs, onDownload, onView, onRe
 }
 
 /* ===================== AI Mini Status Badge ===================== */
-function AiStatusMini({ status }) {
+function AiStatusMini({ status, t }) {
   const config = {
-    pending: { icon: Clock, label: 'AI Pending', className: 'text-charcoal-400 bg-cream-200' },
-    processing: { icon: Loader2, label: 'AI Processing', className: 'text-ai-600 bg-ai-50 animate-ai-pulse' },
-    completed: { icon: Sparkles, label: 'AI Done', className: 'text-ai-600 bg-ai-100' },
+    pending: { icon: Clock, label: t ? t('ai_pending', 'AI Pending') : 'AI Pending', className: 'text-charcoal-400 bg-cream-200' },
+    processing: { icon: Loader2, label: t ? t('ai_processing_badge', 'AI Processing') : 'AI Processing', className: 'text-ai-600 bg-ai-50 animate-ai-pulse' },
+    completed: { icon: Sparkles, label: t ? t('ai_done_badge', 'AI Done') : 'AI Done', className: 'text-ai-600 bg-ai-100' },
     failed: { icon: AlertTriangle, label: 'AI Failed', className: 'text-error-600 bg-error-50' },
   };
   const c = config[status] || config.pending;
@@ -793,25 +808,13 @@ function AiStatusMini({ status }) {
 }
 
 /* ===================== AI Analysis Panel ===================== */
-function AiAnalysisPanel({ doc, ai, reprocessing, onReprocess, onRefresh }) {
+/* ===================== AI Analysis Panel ===================== */
+function AiAnalysisPanel({ doc, ai, reprocessing, onReprocess, onRefresh, t }) {
   const aiProcessing = ai?.data?.aiProcessing || doc.aiProcessing || {};
   const isLoading = ai?.loading;
   const error = ai?.error;
   const status = aiProcessing.status || 'pending';
 
-  // Type label mapping
-  const typeLabels = {
-    PAN: 'PAN Card',
-    AADHAAR: 'Aadhaar Card',
-    SALARY_SLIP: 'Salary Slip',
-    PAYMENT_SLIP: 'Payment Slip',
-    BANK_STATEMENT: 'Bank Statement',
-    FORM_16: 'Form 16',
-    OTHER: 'Other Document',
-    UNKNOWN: 'Unknown',
-  };
-
-  // Check if AI predicted type differs from user-selected type
   const userType = doc.documentType?.toUpperCase().replace(/ /g, '_');
   const aiType = aiProcessing.predictedType;
   const typeMismatch = aiType && userType && aiType !== userType &&
@@ -821,14 +824,14 @@ function AiAnalysisPanel({ doc, ai, reprocessing, onReprocess, onRefresh }) {
     <div className="border-t border-cream-300 bg-ai-50/40 p-4 animate-fade-in">
       <div className="flex items-center justify-between mb-3">
         <h4 className="text-sm font-semibold text-ai-700 flex items-center gap-2">
-          <Brain className="w-4 h-4" /> AI Document Analysis
+          <Brain className="w-4 h-4" /> {t ? t('cap_doc_title', 'AI Document Analysis') : 'AI Document Analysis'}
         </h4>
         <div className="flex items-center gap-2">
           <button
             onClick={onRefresh}
             className="text-xs text-charcoal-500 hover:text-charcoal-700 flex items-center gap-1 transition-colors"
           >
-            <RefreshCw className="w-3 h-3" /> Refresh
+            <RefreshCw className="w-3 h-3" /> {t ? t('reprocess_btn', 'Refresh') : 'Refresh'}
           </button>
           <button
             onClick={onReprocess}
@@ -836,7 +839,7 @@ function AiAnalysisPanel({ doc, ai, reprocessing, onReprocess, onRefresh }) {
             className="text-xs font-medium text-ai-600 hover:text-ai-700 bg-ai-100 hover:bg-ai-100/80 px-2.5 py-1 rounded-md flex items-center gap-1 transition-colors disabled:opacity-50"
           >
             {reprocessing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Zap className="w-3 h-3" />}
-            {reprocessing ? 'Reprocessing...' : 'Reprocess'}
+            {reprocessing ? (t ? t('reprocessing_btn', 'Reprocessing...') : 'Reprocessing...') : (t ? t('reprocess_btn', 'Reprocess') : 'Reprocess')}
           </button>
         </div>
       </div>
@@ -845,7 +848,7 @@ function AiAnalysisPanel({ doc, ai, reprocessing, onReprocess, onRefresh }) {
       {isLoading && (
         <div className="animate-shimmer rounded-lg p-6 text-center">
           <Loader2 className="w-5 h-5 text-ai-500 animate-spin mx-auto mb-2" />
-          <p className="text-xs text-ai-600">Loading AI analysis...</p>
+          <p className="text-xs text-ai-600">{t ? t('loading_ai_analysis', 'Loading AI analysis...') : 'Loading AI analysis...'}</p>
         </div>
       )}
 
@@ -863,14 +866,14 @@ function AiAnalysisPanel({ doc, ai, reprocessing, onReprocess, onRefresh }) {
           {status === 'processing' ? (
             <>
               <Loader2 className="w-6 h-6 text-ai-500 animate-spin mx-auto mb-2" />
-              <p className="text-sm font-medium text-ai-700">AI is processing this document...</p>
-              <p className="text-xs text-ai-500 mt-1">Classification and extraction in progress</p>
+              <p className="text-sm font-medium text-ai-700">{t ? t('ai_processing_doc_desc', 'AI is processing this document...') : 'AI is processing this document...'}</p>
+              <p className="text-xs text-ai-500 mt-1">{t ? t('classification_extraction_progress', 'Classification and extraction in progress') : 'Classification and extraction in progress'}</p>
             </>
           ) : (
             <>
               <Clock className="w-6 h-6 text-charcoal-300 mx-auto mb-2" />
-              <p className="text-sm font-medium text-charcoal-600">Awaiting AI processing</p>
-              <p className="text-xs text-charcoal-400 mt-1">Processing will begin automatically</p>
+              <p className="text-sm font-medium text-charcoal-600">{t ? t('awaiting_ai_processing', 'Awaiting AI processing') : 'Awaiting AI processing'}</p>
+              <p className="text-xs text-charcoal-400 mt-1">{t ? t('processing_begin_auto', 'Processing will begin automatically') : 'Processing will begin automatically'}</p>
             </>
           )}
         </div>
@@ -882,11 +885,11 @@ function AiAnalysisPanel({ doc, ai, reprocessing, onReprocess, onRefresh }) {
           <div className="flex items-start gap-3">
             <XCircle className="w-5 h-5 text-error-500 shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-medium text-error-700">Processing Failed</p>
+              <p className="text-sm font-medium text-error-700">{t ? t('processing_failed', 'Processing Failed') : 'Processing Failed'}</p>
               {aiProcessing.processingError && (
                 <p className="text-xs text-error-600 mt-1">{aiProcessing.processingError}</p>
               )}
-              <p className="text-xs text-charcoal-500 mt-2">Click "Reprocess" to try again.</p>
+              <p className="text-xs text-charcoal-500 mt-2">{t ? t('click_reprocess_try_again', 'Click "Reprocess" to try again.') : 'Click "Reprocess" to try again.'}</p>
             </div>
           </div>
         </div>
@@ -900,11 +903,11 @@ function AiAnalysisPanel({ doc, ai, reprocessing, onReprocess, onRefresh }) {
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-success-500" />
               <span className="text-sm font-semibold text-charcoal-900">
-                {typeLabels[aiType] || aiType || 'Unknown'}
+                {translateDocType(aiType || doc.documentType, t)}
               </span>
             </div>
             {aiProcessing.confidence != null && (
-              <ConfidenceBadge confidence={aiProcessing.confidence} />
+              <ConfidenceBadge confidence={aiProcessing.confidence} t={t} />
             )}
             {aiProcessing.extractionMethod && (
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-slate-100 text-slate-700 text-xs font-semibold rounded-md border border-slate-200">
@@ -914,14 +917,14 @@ function AiAnalysisPanel({ doc, ai, reprocessing, onReprocess, onRefresh }) {
             {typeMismatch && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-warning-50 text-warning-600 text-xs font-medium rounded-full border border-warning-100">
                 <AlertTriangle className="w-3 h-3" />
-                User selected: {doc.documentType.replace(/_/g, ' ')}
+                User selected: {translateDocType(doc.documentType, t)}
               </span>
             )}
           </div>
 
           {/* Extracted Data */}
           {aiProcessing.extractedData && Object.keys(aiProcessing.extractedData).length > 0 && (
-            <ExtractedDataTable data={aiProcessing.extractedData} documentType={aiType} />
+            <ExtractedDataTable data={aiProcessing.extractedData} documentType={aiType} t={t} />
           )}
 
           {/* Processed timestamp */}
@@ -940,7 +943,7 @@ function AiAnalysisPanel({ doc, ai, reprocessing, onReprocess, onRefresh }) {
 }
 
 /* ===================== Confidence Badge ===================== */
-function ConfidenceBadge({ confidence }) {
+function ConfidenceBadge({ confidence, t }) {
   const pct = Math.round(confidence * 100);
   let color = 'text-success-600 bg-success-50 border-success-100';
   if (pct < 70) color = 'text-error-600 bg-error-50 border-error-100';
@@ -948,13 +951,13 @@ function ConfidenceBadge({ confidence }) {
 
   return (
     <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-full border ${color}`}>
-      {pct}% confidence
+      {pct}% {t ? t('confidence_label', 'confidence') : 'confidence'}
     </span>
   );
 }
 
 /* ===================== Extracted Data Table ===================== */
-function ExtractedDataTable({ data, documentType }) {
+function ExtractedDataTable({ data, documentType, t }) {
   // Format field labels nicely
   const formatLabel = (key) => {
     return key
@@ -966,7 +969,6 @@ function ExtractedDataTable({ data, documentType }) {
   const formatValue = (key, value) => {
     if (value === null || value === undefined) return '—';
     if (typeof value === 'number') {
-      // Format as currency if it looks like a monetary amount
       const moneyFields = ['salary', 'amount', 'balance', 'deduction', 'income', 'tax', 'hra', 'pf', 'gross', 'net', 'credit', 'debit', 'exemption', 'refund'];
       const isMoneyField = moneyFields.some(f => key.toLowerCase().includes(f));
       if (isMoneyField) {
@@ -976,7 +978,6 @@ function ExtractedDataTable({ data, documentType }) {
     }
     if (Array.isArray(value)) {
       if (value.length === 0) return '—';
-      // Render arrays as a compact list
       return (
         <div className="space-y-1">
           {value.slice(0, 5).map((item, idx) => (
@@ -1001,7 +1002,6 @@ function ExtractedDataTable({ data, documentType }) {
     return String(value);
   };
 
-  // Separate scalar fields from array/object fields
   const entries = Object.entries(data);
   const scalarEntries = entries.filter(([, v]) => !Array.isArray(v) && typeof v !== 'object');
   const arrayEntries = entries.filter(([, v]) => Array.isArray(v));
@@ -1010,10 +1010,10 @@ function ExtractedDataTable({ data, documentType }) {
     <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs">
       <div className="px-3.5 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
         <h5 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-          <Sparkles className="w-3.5 h-3.5 text-emerald-600" /> Extracted Information
+          <Sparkles className="w-3.5 h-3.5 text-emerald-600" /> {t ? t('extracted_information', 'Extracted Information') : 'Extracted Information'}
         </h5>
         <span className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-          AI Parsed
+          {t ? t('ai_parsed_badge', 'AI Parsed') : 'AI Parsed'}
         </span>
       </div>
       <div className="divide-y divide-slate-100 p-1">

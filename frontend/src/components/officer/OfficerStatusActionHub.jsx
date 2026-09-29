@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useLanguage } from '../../context/LanguageContext';
+import { translateStatus } from '../../constants/translations';
 import {
   CheckCircle2,
   XCircle,
@@ -114,6 +116,7 @@ export default function OfficerStatusActionHub({
   onDelete,
   updating = false,
 }) {
+  const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -156,7 +159,7 @@ export default function OfficerStatusActionHub({
             ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 opacity-90 shadow-none'
             : 'bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white shadow-emerald-600/20 hover:shadow-md hover:shadow-emerald-600/30'
         }`}
-        title="Quick Approve Application"
+        title={t('approve_loan', 'Approve Loan')}
       >
         {updating && currentStatus !== 'approved' ? (
           <Loader2 className="w-4 h-4 animate-spin text-white" />
@@ -167,7 +170,7 @@ export default function OfficerStatusActionHub({
             }`}
           />
         )}
-        <span>{isApproved ? 'Approved' : 'Approve Loan'}</span>
+        <span>{isApproved ? t('approved', 'Approved') : t('approve_loan', 'Approve Loan')}</span>
       </button>
 
       {/* Quick Solid Action Button: REJECT */}
@@ -180,14 +183,14 @@ export default function OfficerStatusActionHub({
             ? 'bg-red-50 text-red-700 border border-red-200 opacity-90 shadow-none'
             : 'bg-white hover:bg-red-50 text-red-600 border border-red-200 hover:border-red-300 active:bg-red-100'
         }`}
-        title="Reject Application"
+        title={t('reject_loan', 'Reject')}
       >
         <XCircle
           className={`w-4 h-4 transition-transform group-hover:scale-110 ${
             isRejected ? 'text-red-600' : 'text-red-500'
           }`}
         />
-        <span>{isRejected ? 'Rejected' : 'Reject'}</span>
+        <span>{isRejected ? t('rejected', 'Rejected') : t('reject_loan', 'Reject')}</span>
       </button>
 
       {/* Custom Interactive Dropdown Menu */}
@@ -203,8 +206,8 @@ export default function OfficerStatusActionHub({
           aria-expanded={isOpen}
         >
           <span className={`w-2.5 h-2.5 rounded-full ${activeOption.dotColor} shrink-0`} />
-          <span className="font-semibold text-slate-700">Status:</span>
-          <span className="font-bold text-slate-900">{activeOption.label}</span>
+          <span className="font-semibold text-slate-700">{t('status_label', 'Status:')}</span>
+          <span className="font-bold text-slate-900">{translateStatus(activeOption.value, t)}</span>
           <ChevronDown
             className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ml-0.5 ${
               isOpen ? 'rotate-180 text-slate-700' : ''
@@ -217,7 +220,7 @@ export default function OfficerStatusActionHub({
           <div className="absolute right-0 mt-2 w-72 origin-top-right bg-white rounded-md shadow-xl border border-slate-200/90 py-2 z-50 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-sm divide-y divide-slate-100">
             <div className="px-3.5 py-2">
               <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                Change Application State
+                {t('change_state_title', 'Change Application State')}
               </p>
             </div>
 
@@ -250,7 +253,7 @@ export default function OfficerStatusActionHub({
                             isSelected ? 'text-slate-900 font-extrabold' : 'text-slate-800'
                           }`}
                         >
-                          {opt.label}
+                          {translateStatus(opt.value, t)}
                         </span>
                         {isSelected && (
                           <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 font-bold" />
@@ -274,10 +277,10 @@ export default function OfficerStatusActionHub({
         onClick={onDelete}
         disabled={updating}
         className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-slate-400 hover:text-red-600 hover:bg-red-50 active:bg-red-100 rounded-md transition-all duration-200 border border-transparent hover:border-red-200 cursor-pointer disabled:opacity-50"
-        title="Delete Application Permanently"
+        title={t('delete_btn', 'Delete')}
       >
         <Trash2 className="w-3.5 h-3.5" />
-        <span className="hidden sm:inline">Delete</span>
+        <span className="hidden sm:inline">{t('delete_btn', 'Delete')}</span>
       </button>
     </div>
   );

@@ -4,6 +4,7 @@ import { Search, Trash2, ArrowRight, X, SlidersHorizontal, Clock } from 'lucide-
 import { officerService } from '../../services/officerService';
 import { useToast } from '../../context/ToastContext';
 import { useConfirm } from '../../context/ConfirmContext';
+import { useLanguage } from '../../context/LanguageContext';
 import BankLogo from '../../components/common/BankLogo';
 import { ROUTES } from '../../constants/routes';
 import { LOAN_TYPE_DETAILS } from '../../constants/banks';
@@ -16,6 +17,7 @@ import {
   waitingLabel,
   formatDate,
 } from '../../lib/officerData';
+import { translateStatus, translateLoanType } from '../../constants/translations';
 import { formatINR, formatINRCompact } from '../../lib/loanMath';
 
 const CARD = 'bg-white border border-slate-200 rounded-xl shadow-[0_1px_2px_0_rgba(15,23,42,0.04)]';
@@ -36,6 +38,7 @@ export default function ApplicationsList() {
   const [params, setParams] = useSearchParams();
   const toast = useToast();
   const confirm = useConfirm();
+  const { t } = useLanguage();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
@@ -130,7 +133,7 @@ export default function ApplicationsList() {
               type="search"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by applicant name, email or application ID…"
+              placeholder={t('search_officer_placeholder', 'Search applications by name, ID or email...')}
               aria-label="Search applications"
               className="w-full pl-9 pr-3 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/25 focus:border-emerald-500 focus:bg-white transition-colors"
             />
@@ -151,10 +154,10 @@ export default function ApplicationsList() {
                 onChange={(e) => setTypeFilter(e.target.value)}
                 className="pl-9 pr-8 py-2.5 text-sm bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/25 focus:border-emerald-500 transition-colors cursor-pointer"
               >
-                <option value="">All loan types</option>
+                <option value="">{t('all_chip', 'All')} {t('loan_type_label', 'Loan Types')}</option>
                 {LOAN_TYPE_DETAILS.map((type) => (
                   <option key={type.value} value={type.value}>
-                    {type.label}
+                    {translateLoanType(type.value, t)}
                   </option>
                 ))}
               </select>
@@ -167,7 +170,7 @@ export default function ApplicationsList() {
                 className="inline-flex items-center gap-1.5 text-[13px] font-medium text-slate-600 hover:text-slate-900 border border-slate-200 hover:border-slate-300 rounded-lg px-3 py-2.5 transition-colors cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" aria-hidden="true" />
-                Clear
+                {t('cancel_btn', 'Clear')}
               </button>
             )}
           </div>
@@ -178,6 +181,7 @@ export default function ApplicationsList() {
             const isActive = statusFilter === chip.value;
             const count = chip.value ? counts.get(chip.value) || 0 : applications.length;
             if (chip.value && count === 0 && !isActive) return null;
+            const chipLabel = chip.value ? translateStatus(chip.value, t) : t('all_chip', 'All');
             return (
               <button
                 key={chip.value || 'all'}
@@ -190,7 +194,7 @@ export default function ApplicationsList() {
                     : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:text-slate-900'
                 }`}
               >
-                {chip.label}
+                {chipLabel}
                 <span
                   className={`text-[11px] tabular-nums ${isActive ? 'text-slate-300' : 'text-slate-400'}`}
                 >
@@ -267,20 +271,18 @@ export default function ApplicationsList() {
                         </div>
                       </div>
 
-                      <span className={`text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded border shrink-0 ${meta.chip}`}>
-                        {meta.label}
-                      </span>
+                      <StatusBadge status={app.status} />
                     </div>
 
                     <div className="grid grid-cols-2 gap-2 text-xs py-2 px-3 bg-slate-50 rounded-lg border border-slate-200">
                       <div>
-                        <span className="text-[10px] text-slate-400 font-mono block">PRODUCT & BANK</span>
+                        <span className="text-[10px] text-slate-400 font-mono block uppercase">{t('bank_loantype_col', 'Product & Bank')}</span>
                         <span className="font-semibold text-slate-900 block truncate">
-                          {loanTypeLabel(app.loanType)} · {bank?.name || app.bankName || 'Bank'}
+                          {translateLoanType(app.loanType, t)} · {bank?.name || app.bankName || 'Bank'}
                         </span>
                       </div>
                       <div className="text-right">
-                        <span className="text-[10px] text-slate-400 font-mono block">REQUESTED</span>
+                        <span className="text-[10px] text-slate-400 font-mono block uppercase">{t('amount_col', 'Requested')}</span>
                         <span className="font-bold font-mono text-slate-900 block">
                           {formatINR(app.requestedAmount)}
                         </span>
@@ -307,7 +309,7 @@ export default function ApplicationsList() {
                           to={ROUTES.officerApplication(app._id)}
                           className="inline-flex items-center gap-1 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 px-3 py-1.5 rounded-lg transition-colors"
                         >
-                          Review Application
+                          {t('view_details_btn', 'Review Application')}
                           <ArrowRight className="w-3.5 h-3.5" />
                         </Link>
                       </div>
@@ -323,31 +325,30 @@ export default function ApplicationsList() {
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50">
                     <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                      Applicant
+                      {t('name_applicant_col', 'Applicant')}
                     </th>
                     <th className="px-3 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                      Product
+                      {t('bank_loantype_col', 'Product')}
                     </th>
                     <th className="px-3 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400 text-right">
-                      Amount
+                      {t('amount_col', 'Amount')}
                     </th>
                     <th className="px-3 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400 text-right whitespace-nowrap">
-                      Tenure
+                      {t('tenure_col', 'Tenure')}
                     </th>
                     <th className="px-3 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400 whitespace-nowrap">
-                      Received
+                      {t('timeline_created', 'Received')}
                     </th>
                     <th className="px-3 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                      Status
+                      {t('status_col', 'Status')}
                     </th>
                     <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400 text-right">
-                      Actions
+                      {t('action_col', 'Actions')}
                     </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {filtered.map((app) => {
-                    const meta = statusMeta(app.status);
                     const bank = bankFor(app);
                     const days = daysWaiting(app.createdAt);
                     return (
@@ -378,7 +379,7 @@ export default function ApplicationsList() {
                             <BankLogo bank={bank} name={app.bankName} size="md" />
                             <div className="min-w-0">
                               <p className="text-[13px] text-slate-900 truncate">
-                                {loanTypeLabel(app.loanType)}
+                                {translateLoanType(app.loanType, t)}
                               </p>
                               <p className="text-[11px] text-slate-400 truncate">
                                 {bank?.name || app.bankName || 'Bank not recorded'}
@@ -392,7 +393,7 @@ export default function ApplicationsList() {
                         </td>
 
                         <td className="px-3 py-3 text-right text-slate-600 tabular-nums whitespace-nowrap">
-                          {app.tenureMonths ? `${app.tenureMonths} mo` : '—'}
+                          {app.tenureMonths ? `${app.tenureMonths} ${t('months_suffix', 'months')}` : '—'}
                         </td>
 
                         <td className="px-3 py-3 whitespace-nowrap">
@@ -404,11 +405,7 @@ export default function ApplicationsList() {
                         </td>
 
                         <td className="px-3 py-3">
-                          <span
-                            className={`inline-flex items-center text-[11px] font-semibold px-2.5 py-1 rounded-full whitespace-nowrap ${meta.chip}`}
-                          >
-                            {meta.label}
-                          </span>
+                          <StatusBadge status={app.status} />
                         </td>
 
                         <td className="px-5 py-3">
@@ -417,7 +414,7 @@ export default function ApplicationsList() {
                               to={ROUTES.officerApplication(app._id)}
                               className="inline-flex items-center gap-1 text-[13px] font-medium text-emerald-600 hover:text-emerald-700 transition-colors whitespace-nowrap"
                             >
-                              Review
+                              {t('view_details_btn', 'Review')}
                               <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
                             </Link>
                             <button

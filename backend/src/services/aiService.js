@@ -128,11 +128,10 @@ const processDocumentInternal = async (documentId) => {
     if (
       document.aiProcessing &&
       document.aiProcessing.status === 'completed' &&
-      document.aiProcessing.extractedData &&
-      document.aiProcessing.promptVersion === PROMPT_VERSION
+      document.aiProcessing.extractedData
     ) {
       console.log(
-        `[AI] ⏭️  Skipping ${document.originalName} (${documentId}) — already processed (promptVersion=${PROMPT_VERSION})`
+        `[AI] ⏭️  Skipping ${document.originalName} (${documentId}) — already processed`
       );
       // Still trigger validation in case this was the last pending doc
       await triggerDeferredValidation(document.application);
@@ -216,7 +215,7 @@ const processDocumentInternal = async (documentId) => {
             form,
             {
               headers: { ...form.getHeaders() },
-              timeout: 60000,
+              timeout: 4000,
               maxContentLength: 50 * 1024 * 1024,
             }
           );
@@ -296,7 +295,7 @@ const processDocumentInternal = async (documentId) => {
             form,
             {
               headers: { ...form.getHeaders() },
-              timeout: 60000,
+              timeout: 4000,
               maxContentLength: 50 * 1024 * 1024,
             }
           );
