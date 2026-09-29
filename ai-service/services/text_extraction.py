@@ -71,7 +71,21 @@ def extract_text_from_pdf(
         logger.error(f"PyMuPDF text extraction failed: {e}")
 
     full_text = "\n\n".join(text_parts)
-    has_text = len(full_text.strip()) > 10
+    has_native_text = len(full_text.strip()) >= 40
+    engine = "pymupdf"
+
+    if not has_native_text:
+        logger.info(f"Native PDF text layer short ({len(full_text.strip())} chars). Triggering Tesseract OCR fallback...")
+        try:
+            with fitz.open(stream=file_bytes, filetype="pdf") as doc:
+                ocr_text = _ocr_pdf_pages(doc, max_pages=page_limit if page_limit else 5)
+                if ocr_text.strip():
+                    full_text = ocr_text.strip()
+                    engine = "tesseract_pdf"
+        except Exception as ocr_err:
+            logger.warning(f"PDF OCR fallback failed: {ocr_err}")
+
+    has_text = len(full_text.strip()) > 5
 
     return {
         "text": full_text,
@@ -79,9 +93,46 @@ def extract_text_from_pdf(
         "page_count": page_count,
         "pages_read": pages_read,
         "has_text": has_text,
-        "ocr_engine": "pymupdf",
+        "ocr_engine": engine,
         "needs_vision": False,
     }
+
+
+def _ocr_pdf_pages(doc: fitz.Document, max_pages: int = 5) -> str:
+    """Render PDF pages to pixmaps and run Tesseract OCR."""
+    import os
+    import io
+    import numpy as np
+    from PIL import Image, ImageOps
+    import pytesseract
+
+    tesseract_windows_path = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+    if os.path.exists(tesseract_windows_path):
+        pytesseract.pytesseract.tesseract_cmd = tesseract_windows_path
+
+    zoom = 300 / 72
+    matrix = fitz.Matrix(zoom, zoom)
+    ocr_parts = []
+
+    pages_to_ocr = min(len(doc), max_pages)
+    for page_idx in range(pages_to_ocr):
+        try:
+            pix = doc[page_idx].get_pixmap(matrix=matrix)
+            img = Image.open(io.BytesIO(pix.tobytes("png"))).convert("L")
+            img = ImageOps.autocontrast(img)
+            arr = np.array(img)
+            threshold = arr.mean() * 0.9
+            binarized = np.where(arr > threshold, 255, 0).astype(np.uint8)
+            processed_img = Image.fromarray(binarized)
+            page_text = pytesseract.image_to_string(processed_img, config="--oem 3 --psm 6")
+            if not page_text.strip():
+                page_text = pytesseract.image_to_string(processed_img, config="--oem 3 --psm 3")
+            if page_text.strip():
+                ocr_parts.append(page_text.strip())
+        except Exception as err:
+            logger.warning(f"OCR page {page_idx} error: {err}")
+
+    return "\n\n".join(ocr_parts)
 
 
 def compact_bank_statement(text: str, tables: list) -> str:
@@ -133,28 +184,46 @@ def _preprocess_image_for_ocr(image_bytes: bytes):
 def extract_text_from_image(file_bytes: bytes) -> dict:
     """Handle image files with Tesseract (lazy-loaded)."""
     try:
+        import os
         import pytesseract
 
-        pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+        tesseract_windows_path = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+        if os.path.exists(tesseract_windows_path):
+            pytesseract.pytesseract.tesseract_cmd = tesseract_windows_path
+
         processed_img = _preprocess_image_for_ocr(file_bytes)
         text = pytesseract.image_to_string(processed_img, config="--oem 3 --psm 3").strip()
-        has_text = len(text) > 20
+        
+        if len(text) < 15:
+            text_psm6 = pytesseract.image_to_string(processed_img, config="--oem 3 --psm 6").strip()
+            if len(text_psm6) > len(text):
+                text = text_psm6
+
+        if len(text) < 15:
+            from PIL import Image
+            import io
+            raw_img = Image.open(io.BytesIO(file_bytes))
+            text_raw = pytesseract.image_to_string(raw_img, config="--oem 3 --psm 3").strip()
+            if len(text_raw) > len(text):
+                text = text_raw
+
+        has_text = len(text) > 5
         return {
-            "text": text if has_text else "[Image uploaded for record storage]",
+            "text": text,
             "tables": [],
             "page_count": 1,
-            "has_text": True,
-            "ocr_engine": "tesseract" if has_text else "stored_image",
+            "has_text": has_text,
+            "ocr_engine": "tesseract" if has_text else "none",
             "needs_vision": False,
         }
     except Exception as e:
-        logger.info(f"Image text extraction info: {e}")
+        logger.warning(f"Image text extraction error: {e}")
         return {
-            "text": "[Image uploaded for record storage]",
+            "text": "",
             "tables": [],
             "page_count": 1,
-            "has_text": True,
-            "ocr_engine": "stored_image",
+            "has_text": False,
+            "ocr_engine": "failed",
             "needs_vision": False,
         }
 

@@ -211,21 +211,15 @@ def _find_holder_name_pan(text: str, pan_number: Optional[str] = None, fathers_n
 
 def parse_pan_text(text: str) -> dict:
     """Extract structured PAN fields from native PDF / OCR text."""
-    if not text or len(text.strip()) < 10 or "Image uploaded for record storage" in text:
-        data = PanCardData(
-            pan_number="ABCPS1234F",
-            name="Rahul Sharma",
-            fathers_name="Satish Sharma",
-            date_of_birth="12/05/1992",
-        )
-        return data.model_dump(exclude_none=True)
+    if not text or len(text.strip()) < 5:
+        return {}
 
-    pan_number = _find_pan_number(text) or "ABCPS1234F"
+    pan_number = _find_pan_number(text)
     fathers_name = _find_fathers_name_after_label(text)
-    name = _find_holder_name_pan(text, pan_number=pan_number, fathers_name=fathers_name) or "Rahul Sharma"
+    name = _find_holder_name_pan(text, pan_number=pan_number, fathers_name=fathers_name)
     if name == "Image uploaded for record storage":
-        name = "Rahul Sharma"
-    date_of_birth = _find_dob(text) or "12/05/1992"
+        name = None
+    date_of_birth = _find_dob(text)
 
     data = PanCardData(
         pan_number=pan_number,
@@ -312,23 +306,16 @@ def _find_holder_name_aadhaar(text: str) -> Optional[str]:
 
 def parse_aadhaar_text(text: str) -> dict:
     """Extract structured Aadhaar fields from native PDF / OCR text."""
-    if not text or len(text.strip()) < 10 or "Image uploaded for record storage" in text:
-        data = AadhaarCardData(
-            aadhaar_number="987654321098",
-            name="Rahul Sharma",
-            date_of_birth="12/05/1992",
-            gender="Male",
-            address="Flat 402, Green Valley, Hinjewadi, Pune 411057",
-        )
-        return data.model_dump(exclude_none=True)
+    if not text or len(text.strip()) < 5:
+        return {}
 
-    aadhaar_number = _find_aadhaar_number(text) or "987654321098"
-    name = _find_holder_name_aadhaar(text) or "Rahul Sharma"
+    aadhaar_number = _find_aadhaar_number(text)
+    name = _find_holder_name_aadhaar(text)
     if name == "Image uploaded for record storage":
-        name = "Rahul Sharma"
-    date_of_birth = _find_dob(text) or _find_labeled_value(text, AADHAAR_LABELS["date_of_birth"]) or "12/05/1992"
-    gender = _find_labeled_value(text, AADHAAR_LABELS["gender"]) or "Male"
-    address = _find_labeled_value(text, AADHAAR_LABELS["address"]) or "Flat 402, Green Valley, Hinjewadi, Pune 411057"
+        name = None
+    date_of_birth = _find_dob(text) or _find_labeled_value(text, AADHAAR_LABELS["date_of_birth"])
+    gender = _find_labeled_value(text, AADHAAR_LABELS["gender"])
+    address = _find_labeled_value(text, AADHAAR_LABELS["address"])
 
     if date_of_birth:
         for pat in DOB_PATTERNS:

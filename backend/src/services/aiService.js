@@ -106,7 +106,58 @@ const queueDocument = async (documentId) => {
   return true;
 };
 
-// ------------------------------------
+/**
+ * Extracts raw text and regex entities directly from uploaded file buffer on disk.
+ */
+function extractTextFromFileBuffer(fileBuffer, mimetype, docType) {
+  if (!fileBuffer) return { text: '', data: {} };
+  const rawStr = fileBuffer.toString('binary');
+
+  // Extract clean ASCII/UTF8 text lines from stream
+  const asciiMatches = rawStr.match(/[\x20-\x7E\s]{4,}/g) || [];
+  const textContent = asciiMatches.join('\n');
+
+  const extractedData = {};
+
+  // 1. PAN Number
+  const panMatch = textContent.match(/\b([A-Z]{5}[0-9]{4}[A-Z])\b/);
+  if (panMatch) extractedData.pan_number = panMatch[1];
+
+  // 2. Aadhaar Number
+  const aadhaarMatch = textContent.match(/\b(\d{4}[\s-]?\d{4}[\s-]?\d{4})\b/);
+  if (aadhaarMatch) extractedData.aadhaar_number = aadhaarMatch[1].replace(/\s+/g, '-');
+
+  // 3. Name (Match "Name:", "Employee Name:", "Account Holder:")
+  const nameMatch = textContent.match(/(?:Employee\s+Name|Account\s+Holder|Name|नाम)\s*[:\-]?\s*([A-Za-z\s\.]{3,30})/i);
+  if (nameMatch) {
+    const cleanName = nameMatch[1].trim().replace(/\s+/g, ' ');
+    if (cleanName.length >= 3 && !/department|income|govt|india|permanent|account|bank/i.test(cleanName)) {
+      extractedData.name = cleanName;
+      extractedData.employee_name = cleanName;
+      extractedData.account_holder = cleanName;
+    }
+  }
+
+  // 4. Date of Birth
+  const dobMatch = textContent.match(/\b(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})\b/);
+  if (dobMatch) extractedData.date_of_birth = dobMatch[1];
+
+  // 5. Employer Name
+  const empMatch = textContent.match(/(?:Employer|Company|Organization|Disbursal)\s*[:\-]?\s*([A-Za-z0-9\s\.,&]{3,40})/i);
+  if (empMatch) extractedData.employer_name = empMatch[1].trim();
+
+  // 6. Amounts (Salary / Credits)
+  const salaryMatch = textContent.match(/(?:Net\s+Pay|Net\s+Salary|Gross\s+Salary|Salary\s+Credit)\s*[:\-]?\s*(?:₹|Rs\.?)?\s*([\d,]{4,10})/i);
+  if (salaryMatch) {
+    const num = Number(salaryMatch[1].replace(/,/g, ''));
+    if (!isNaN(num) && num > 0) {
+      extractedData.net_salary = num;
+      extractedData.gross_salary = num;
+    }
+  }
+
+  return { text: textContent.substring(0, 4000), data: extractedData };
+}
 
 /**
  * Process a document through the AI pipeline (internal).
@@ -232,33 +283,26 @@ const processDocumentInternal = async (documentId) => {
       }
 
       if (!extractedData || Object.keys(extractedData).length === 0) {
-        if (document.documentType === 'pan') {
-          extractedData = {
-            pan_number: 'ABCPS1234F',
-            name: 'Rahul Sharma',
-            father_name: 'Suresh Sharma',
-            date_of_birth: '15/01/1988',
-          };
-          rawText = 'INCOME TAX DEPARTMENT GOVT. OF INDIA PAN: ABCPS1234F NAME: Rahul Sharma';
-        } else {
-          extractedData = {
-            aadhaar_number: 'XXXX-XXXX-9012',
-            name: 'Rahul Sharma',
-            gender: 'Male',
-            date_of_birth: '15/01/1988',
-          };
-          rawText = 'GOVERNMENT OF INDIA AADHAAR: XXXX-XXXX-9012 NAME: Rahul Sharma';
+        if (fileExists) {
+          try {
+            const fileBuf = fs.readFileSync(filePath);
+            const parsed = extractTextFromFileBuffer(fileBuf, document.mimetype, document.documentType);
+            extractedData = parsed.data;
+            rawText = parsed.text;
+          } catch (e) {
+            console.warn(`[AI] Buffer fallback extraction error: ${e.message}`);
+          }
         }
       }
 
-      document.ocr.text = rawText || `${document.documentType.toUpperCase()} verified`;
+      document.ocr.text = rawText || `${document.documentType.toUpperCase()} document text layer`;
       document.ocr.engine = engine;
       document.ocr.status = 'completed';
       document.ocr.processedAt = new Date();
 
       document.aiProcessing.status = 'completed';
       document.aiProcessing.predictedType = document.documentType === 'pan' ? 'PAN' : 'AADHAAR';
-      document.aiProcessing.confidence = 0.98;
+      document.aiProcessing.confidence = 0.95;
       document.aiProcessing.extractedData = extractedData;
       document.aiProcessing.extractionMethod = engine === 'pymupdf' ? 'native' : 'ocr';
       document.aiProcessing.processedAt = new Date();
@@ -306,42 +350,15 @@ const processDocumentInternal = async (documentId) => {
       }
 
       if (!result || result.processing_status === 'failed' || result.processing_error) {
-        const isSalary = document.documentType === 'salary_slip' || document.documentType === 'payment_slip';
-        const isBank = document.documentType === 'bank_statement';
-        const isForm16 = document.documentType === 'form16';
-
         let extractedData = {};
-        if (isSalary) {
-          extractedData = {
-            employee_name: 'Rahul Sharma',
-            gross_salary: 85000,
-            net_salary: 85000,
-            employer_name: 'TCS / Corporate',
-            pan_number: 'ABCPS1234F',
-            pay_period: 'August 2024',
-          };
-        } else if (isBank) {
-          extractedData = {
-            account_holder: 'Rahul Sharma',
-            salary_credits: [{ amount: 85000, date: '01/08/2024' }],
-            employer_name: 'TCS Salary Disbursal',
-            average_balance: 45000,
-            pan_number: 'ABCPS1234F',
-          };
-        } else if (isForm16) {
-          extractedData = {
-            employer_name: 'TCS / Corporate',
-            gross_total_income: 1020000,
-            pan_number: 'ABCPS1234F',
-            assessment_year: '2024-25',
-            employee_name: 'Rahul Sharma',
-          };
-        } else {
-          extractedData = {
-            status: 'verified',
-            employee_name: 'Rahul Sharma',
-            employer_name: 'TCS / Corporate',
-          };
+        if (fileExists) {
+          try {
+            const fileBuf = fs.readFileSync(filePath);
+            const parsed = extractTextFromFileBuffer(fileBuf, document.mimetype, document.documentType);
+            extractedData = parsed.data;
+          } catch (e) {
+            console.warn(`[AI] Financial buffer extraction error: ${e.message}`);
+          }
         }
 
         result = {
