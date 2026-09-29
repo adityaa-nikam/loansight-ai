@@ -113,9 +113,6 @@ const getApplicationById = async (id) => {
       const declaredIncome = Number(result.declaredMonthlyIncome) || 85000;
 
       let extractedData = d.aiProcessing?.extractedData || {};
-      if (!extractedData.name || extractedData.name === 'Applicant') extractedData.name = applicantName;
-      if (!extractedData.employee_name || extractedData.employee_name === 'Applicant') extractedData.employee_name = applicantName;
-      if (!extractedData.account_holder || extractedData.account_holder === 'Applicant') extractedData.account_holder = applicantName;
 
       if (!d.aiProcessing || d.aiProcessing.status === 'processing' || !d.aiProcessing.extractedData || (isSalary && !d.aiProcessing.extractedData.gross_salary)) {
 

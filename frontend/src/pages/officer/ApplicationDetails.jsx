@@ -1000,10 +1000,6 @@ function ExtractedDataTable({ data, documentType, applicantName, t }) {
         </div>
       );
     }
-    const isNameKey = key.toLowerCase().includes('name') || key.toLowerCase().includes('holder');
-    if (typeof value === 'string' && isNameKey && (value.trim() === 'Applicant' || value.trim() === 'Rahul Sharma' || value.trim() === 'Rohit Sharma')) {
-      return applicantName || 'Abhijeet Sawant';
-    }
     return String(value);
   };
 
