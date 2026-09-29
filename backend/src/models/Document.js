@@ -76,7 +76,20 @@ const documentSchema = new mongoose.Schema(
       },
       predictedType: {
         type: String,
-        enum: ['PAN', 'AADHAAR', 'SALARY_SLIP', 'PAYMENT_SLIP', 'BANK_STATEMENT', 'FORM_16', 'OTHER', 'UNKNOWN'],
+        enum: [
+          'PAN',
+          'AADHAAR',
+          'SALARY_SLIP',
+          'PAYMENT_SLIP',
+          'BANK_STATEMENT',
+          'FORM_16',
+          'FORM16',
+          'PROPERTY_DOCUMENT',
+          'SUPPORTING_DOC',
+          'IDENTITY_RECORD',
+          'OTHER',
+          'UNKNOWN',
+        ],
         default: null,
       },
       confidence: {

@@ -289,8 +289,19 @@ export default function ApplicationDetails() {
   }
 
   const requiredDocs = getDocumentRequirements(app.loanType);
-  const uploadedDocTypes = app.documents.map(d => d.documentType);
-  const missingDocs = requiredDocs.filter(r => !uploadedDocTypes.includes(r.type));
+  const activeDocs = (app.documents || []).filter((d) => d && d.status !== 'superseded');
+  const missingDocs = requiredDocs.filter((req) => {
+    const rt = (req.type || '').toLowerCase().replace(/[-_ ]/g, '');
+    return !activeDocs.some((d) => {
+      const dt = (d.documentType || '').toLowerCase().replace(/[-_ ]/g, '');
+      const pred = (d.aiProcessing?.predictedType || '').toLowerCase().replace(/[-_ ]/g, '');
+      return (
+        dt === rt ||
+        pred === rt ||
+        (rt.includes('form16') && (dt.includes('form16') || pred.includes('form16') || dt.includes('itr')))
+      );
+    });
+  });
 
   return (
     <div className="animate-fade-in max-w-6xl mx-auto space-y-6">
@@ -675,6 +686,11 @@ function DocumentsTab({ app, requiredDocs, missingDocs, onDownload, onView, onRe
                       {doc.status === 'rejected' && (
                         <span className="text-xs font-medium text-error-600 bg-error-50 px-2 py-1 rounded-full flex items-center gap-1">
                           <XCircle className="w-3 h-3" /> Rejected
+                        </span>
+                      )}
+                      {doc.status === 'superseded' && (
+                        <span className="text-xs font-medium text-slate-500 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-full flex items-center gap-1">
+                          Superseded
                         </span>
                       )}
                       {doc.status === 'pending_review' && (

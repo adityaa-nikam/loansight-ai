@@ -109,6 +109,22 @@ const getUserApplications = async (userId) => {
     }
   }
 
+  // Ensure documents from in-memory store are synced into MongoDB application objects
+  const memByAppId = new Map(memApps.map((a) => [String(a._id || a.id), a]));
+  for (const app of applications) {
+    const mem = memByAppId.get(String(app._id || app.id));
+    if (mem && Array.isArray(mem.documents) && mem.documents.length > 0) {
+      const dbDocIds = new Set((app.documents || []).map((d) => String(d._id || d.id || d)));
+      for (const md of mem.documents) {
+        if (!dbDocIds.has(String(md._id || md.id))) {
+          if (Array.isArray(app.documents)) {
+            app.documents.push(md);
+          }
+        }
+      }
+    }
+  }
+
   if (applications.length === 0) return [];
 
   if (mongoose.connection.readyState === 1) {
@@ -133,6 +149,30 @@ const getUserApplications = async (userId) => {
   }
 
   return applications.map((app) => (typeof app.toJSON === 'function' ? app.toJSON() : { ...app }));
+};
+
+const mapDocumentType = (type) => {
+  const t = (type || '').toLowerCase().replace(/[-_ ]/g, '');
+  if (t === 'pan') return 'pan';
+  if (t === 'aadhaar' || t === 'aadhar') return 'aadhaar';
+  if (t === 'salaryslip' || t === 'salary') return 'salary_slip';
+  if (t === 'paymentslip' || t === 'payment') return 'payment_slip';
+  if (t === 'bankstatement' || t === 'bank') return 'bank_statement';
+  if (t === 'form16' || t === 'itr') return 'form16';
+  if (t === 'propertydocument' || t === 'property') return 'property_document';
+  return 'other';
+};
+
+const mapPredictedType = (type) => {
+  const t = (type || '').toLowerCase().replace(/[-_ ]/g, '');
+  if (t === 'pan') return 'PAN';
+  if (t === 'aadhaar' || t === 'aadhar') return 'AADHAAR';
+  if (t === 'salaryslip' || t === 'salary') return 'SALARY_SLIP';
+  if (t === 'paymentslip' || t === 'payment') return 'PAYMENT_SLIP';
+  if (t === 'bankstatement' || t === 'bank') return 'BANK_STATEMENT';
+  if (t === 'form16' || t === 'itr') return 'FORM_16';
+  if (t === 'propertydocument' || t === 'property') return 'PROPERTY_DOCUMENT';
+  return 'OTHER';
 };
 
 const getApplicationByIdAndUser = async (id, userId) => {
@@ -186,11 +226,14 @@ const getApplicationByIdAndUser = async (id, userId) => {
 const uploadDocument = async (applicationId, userId, fileData, documentType, manualText = null) => {
   const application = await getApplicationByIdAndUser(applicationId, userId);
 
+  const canonicalDocType = mapDocumentType(documentType);
+  const canonicalPredictedType = mapPredictedType(canonicalDocType);
+
   const docData = {
     _id: new mongoose.Types.ObjectId().toString(),
     application: applicationId,
     uploadedBy: userId,
-    documentType,
+    documentType: canonicalDocType,
     originalName: fileData.originalname,
     filename: fileData.filename,
     path: fileData.path,
@@ -198,14 +241,15 @@ const uploadDocument = async (applicationId, userId, fileData, documentType, man
     size: fileData.size,
   };
 
-  const isPan = documentType === 'pan';
-  const isAadhaar = documentType === 'aadhaar';
-  const isSalary = documentType === 'salary_slip' || documentType === 'payment_slip';
-  const isBank = documentType === 'bank_statement';
+  const isPan = canonicalDocType === 'pan';
+  const isAadhaar = canonicalDocType === 'aadhaar';
+  const isSalary = canonicalDocType === 'salary_slip' || canonicalDocType === 'payment_slip';
+  const isBank = canonicalDocType === 'bank_statement';
+  const isForm16 = canonicalDocType === 'form16';
 
   const defaultText = manualText && manualText.trim()
-    ? `${documentType.toUpperCase()}: ${manualText.trim()}`
-    : `${documentType.toUpperCase()} document processed and verified for Rohit Sharma`;
+    ? `${canonicalDocType.toUpperCase()}: ${manualText.trim()}`
+    : `${canonicalDocType.toUpperCase()} document processed and verified for Rohit Sharma`;
 
   docData.ocr = {
     text: defaultText,
@@ -230,14 +274,21 @@ const uploadDocument = async (applicationId, userId, fileData, documentType, man
     extractedData.gross_salary = 85000;
     extractedData.net_salary = 85000;
     extractedData.pan_number = 'ABCDE1234F';
+    extractedData.employer_name = 'TCS / Corporate';
   } else if (isBank) {
     extractedData.salary_credits = [{ amount: 85000 }];
     extractedData.pan_number = 'ABCDE1234F';
+    extractedData.employer_name = 'TCS Salary Disbursal';
+  } else if (isForm16) {
+    extractedData.employer_name = 'TCS / Corporate';
+    extractedData.gross_total_income = 1020000;
+    extractedData.pan_number = 'ABCDE1234F';
+    extractedData.assessment_year = '2024-25';
   }
 
   docData.aiProcessing = {
     status: 'completed',
-    predictedType: documentType.toUpperCase(),
+    predictedType: canonicalPredictedType,
     confidence: 0.98,
     extractedData,
     processedAt: new Date(),
@@ -253,41 +304,50 @@ const uploadDocument = async (applicationId, userId, fileData, documentType, man
 
       // If replacing a rejected document of the same type, mark old ones as superseded
       await Document.updateMany(
-        { application: applicationId, documentType, status: 'rejected' },
+        { application: applicationId, documentType: canonicalDocType, status: 'rejected' },
         { status: 'superseded' }
       );
 
-      if (Array.isArray(application.documents)) {
-        application.documents.push(document._id);
-      }
-      
       const remainingRejected = await Document.countDocuments({
         application: applicationId,
         status: 'rejected',
       });
 
+      const updateFields = {
+        $addToSet: { documents: document._id },
+      };
       if (application.status === 'draft') {
-        application.status = 'documents_pending';
+        updateFields.status = 'documents_pending';
       } else if (application.status === 'documents_required' && remainingRejected === 0) {
-        application.status = 'under_review';
+        updateFields.status = 'under_review';
       }
 
-      if (typeof application.save === 'function') {
-        await application.save();
-      }
+      await LoanApplication.findByIdAndUpdate(applicationId, updateFields);
     } catch (err) {
       console.warn('[Application] Document DB save failed, using fallback doc:', err.message);
     }
   }
 
+  // Update in-memory store
+  applicationStore.addDocumentToApplication(applicationId, document);
+
   if (Array.isArray(application.documents)) {
     // In-memory update: mark any existing rejected doc of same type as superseded
     application.documents.forEach((d) => {
-      if (d && d.documentType === documentType && d.status === 'rejected') {
+      if (d && d.documentType === canonicalDocType && d.status === 'rejected') {
         d.status = 'superseded';
       }
     });
-    application.documents.push(document);
+
+    const docObj = typeof document.toJSON === 'function' ? document.toJSON() : { ...document };
+    const existingIdx = application.documents.findIndex(
+      (d) => String(d._id || d.id) === String(document._id)
+    );
+    if (existingIdx >= 0) {
+      application.documents[existingIdx] = docObj;
+    } else {
+      application.documents.push(docObj);
+    }
 
     const hasRejectedLeft = application.documents.some((d) => d && d.status === 'rejected');
     if (application.status === 'documents_required' && !hasRejectedLeft) {

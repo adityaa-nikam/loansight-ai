@@ -73,6 +73,18 @@ const getApplicationById = async (id) => {
 
   const result = typeof application.toJSON === 'function' ? application.toJSON() : { ...application };
 
+  // Ensure documents from in-memory store are synced into result.documents
+  const memApp = applicationStore.getApplicationById(id);
+  if (memApp && Array.isArray(memApp.documents) && memApp.documents.length > 0) {
+    result.documents = Array.isArray(result.documents) ? result.documents : [];
+    const existingDocIds = new Set(result.documents.map((d) => String(d._id || d.id || d)));
+    for (const md of memApp.documents) {
+      if (!existingDocIds.has(String(md._id || md.id))) {
+        result.documents.push(md);
+      }
+    }
+  }
+
   if (!result.applicant || typeof result.applicant === 'string' || !result.applicant.name) {
     const origId = typeof result.applicant === 'object' ? result.applicant?._id : result.applicant;
     result.applicant = {

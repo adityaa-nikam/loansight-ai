@@ -75,6 +75,37 @@ function getApplicationById(id) {
   return found ? normalizeApplication(found) : null;
 }
 
+function addDocumentToApplication(applicationId, document) {
+  const targetId = String(applicationId);
+  const app = inMemoryApplications.find((a) => String(a._id || a.id) === targetId);
+  if (app) {
+    if (!Array.isArray(app.documents)) {
+      app.documents = [];
+    }
+    const docObj = typeof document.toJSON === 'function' ? document.toJSON() : { ...document };
+    
+    // If replacing a rejected document of the same type, mark existing as superseded
+    app.documents.forEach((d) => {
+      if (d && d.documentType === docObj.documentType && d.status === 'rejected') {
+        d.status = 'superseded';
+      }
+    });
+
+    const existingIdx = app.documents.findIndex(
+      (d) => String(d._id || d.id) === String(docObj._id || docObj.id)
+    );
+    if (existingIdx >= 0) {
+      app.documents[existingIdx] = docObj;
+    } else {
+      app.documents.push(docObj);
+    }
+
+    if (app.status === 'draft') {
+      app.status = 'documents_pending';
+    }
+  }
+}
+
 module.exports = {
   inMemoryApplications,
   deletedApplicationIds,
@@ -83,4 +114,6 @@ module.exports = {
   getApplicationsForUser,
   getAllApplicationsForOfficer,
   getApplicationById,
+  addDocumentToApplication,
 };
+
