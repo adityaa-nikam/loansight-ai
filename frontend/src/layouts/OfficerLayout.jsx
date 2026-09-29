@@ -44,7 +44,9 @@ export default function OfficerLayout() {
   }, [load]);
 
   const removeApplication = useCallback((id) => {
-    setApplications((prev) => prev.filter((app) => app._id !== id));
+    setApplications((prev) =>
+      prev.filter((app) => String(app._id) !== String(id) && String(app.id) !== String(id))
+    );
   }, []);
 
   const summary = useMemo(() => queueSummary(applications), [applications]);

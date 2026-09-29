@@ -3,31 +3,6 @@ const mongoose = require('mongoose');
 // Shared in-memory store for fallback & seamless sync across applicant and officer dashboards
 const inMemoryApplications = [];
 
-// Seed an initial demo application for Rohit Sharma so dashboards are rich on load
-const initialDemoId = '65f1a2b3c4d5e6f7a8b9c0d9';
-inMemoryApplications.push({
-  _id: initialDemoId,
-  id: initialDemoId,
-  bankId: 'hdfc',
-  bankName: 'HDFC Bank',
-  loanType: 'personal',
-  requestedAmount: 1500000,
-  tenureMonths: 36,
-  employmentType: 'salaried',
-  declaredMonthlyIncome: 85000,
-  applicant: {
-    _id: '65f1a2b3c4d5e6f7a8b9c0d1',
-    id: '65f1a2b3c4d5e6f7a8b9c0d1',
-    name: 'Rohit Sharma',
-    email: 'rohit.sharma@example.com',
-    role: 'applicant',
-  },
-  status: 'submitted',
-  documents: [],
-  createdAt: new Date(),
-  updatedAt: new Date(),
-});
-
 function normalizeApplication(app) {
   if (!app) return app;
   const obj = typeof app.toJSON === 'function' ? app.toJSON() : { ...app };
