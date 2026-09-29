@@ -40,6 +40,9 @@ const getAllApplications = async (filters = {}) => {
     }
   }
 
+  // Strictly filter out any deleted application IDs
+  applications = applications.filter((a) => !applicationStore.deletedApplicationIds.has(String(a._id)));
+
   return applications;
 };
 
@@ -305,6 +308,9 @@ const deleteApplication = async (applicationId) => {
     }
   }
 
+  // Also remove from shared in-memory store & track as deleted
+  applicationStore.deleteApplication(applicationId);
+
   return true;
 };
 
@@ -344,7 +350,9 @@ const getDashboardStats = async () => {
       else if (app.status === 'documents_required') stats.docsRequired += 1;
     }
 
-    const mergedRecent = [...memApps, ...recent];
+    const mergedRecent = [...memApps, ...recent].filter(
+      (r) => !applicationStore.deletedApplicationIds.has(String(r._id))
+    );
     const uniqueRecent = [];
     const seen = new Set();
     for (const r of mergedRecent) {

@@ -250,12 +250,28 @@ const uploadDocument = async (applicationId, userId, fileData, documentType, man
   if (mongoose.connection.readyState === 1) {
     try {
       document = await Document.create(docData);
+
+      // If replacing a rejected document of the same type, mark old ones as superseded
+      await Document.updateMany(
+        { application: applicationId, documentType, status: 'rejected' },
+        { status: 'superseded' }
+      );
+
       if (Array.isArray(application.documents)) {
         application.documents.push(document._id);
       }
+      
+      const remainingRejected = await Document.countDocuments({
+        application: applicationId,
+        status: 'rejected',
+      });
+
       if (application.status === 'draft') {
         application.status = 'documents_pending';
+      } else if (application.status === 'documents_required' && remainingRejected === 0) {
+        application.status = 'under_review';
       }
+
       if (typeof application.save === 'function') {
         await application.save();
       }
@@ -265,7 +281,18 @@ const uploadDocument = async (applicationId, userId, fileData, documentType, man
   }
 
   if (Array.isArray(application.documents)) {
+    // In-memory update: mark any existing rejected doc of same type as superseded
+    application.documents.forEach((d) => {
+      if (d && d.documentType === documentType && d.status === 'rejected') {
+        d.status = 'superseded';
+      }
+    });
     application.documents.push(document);
+
+    const hasRejectedLeft = application.documents.some((d) => d && d.status === 'rejected');
+    if (application.status === 'documents_required' && !hasRejectedLeft) {
+      application.status = 'under_review';
+    }
   }
 
   // Trigger AI processing asynchronously (fire-and-forget)

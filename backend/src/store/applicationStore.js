@@ -57,16 +57,33 @@ function addApplication(app) {
   return norm;
 }
 
+const deletedApplicationIds = new Set();
+
+function deleteApplication(id) {
+  const targetId = String(id);
+  deletedApplicationIds.add(targetId);
+  const idx = inMemoryApplications.findIndex((a) => String(a._id || a.id) === targetId);
+  if (idx !== -1) {
+    inMemoryApplications.splice(idx, 1);
+  }
+  return true;
+}
+
 function getApplicationsForUser(userId) {
   const uId = String(userId);
-  return inMemoryApplications.map(normalizeApplication).filter((app) => {
-    const appUserId = app.applicant?._id || app.applicant?.id || app.applicant;
-    return String(appUserId) === uId || uId === '65f1a2b3c4d5e6f7a8b9c0d1';
-  });
+  return inMemoryApplications
+    .filter((a) => !deletedApplicationIds.has(String(a._id || a.id)))
+    .map(normalizeApplication)
+    .filter((app) => {
+      const appUserId = app.applicant?._id || app.applicant?.id || app.applicant;
+      return String(appUserId) === uId || uId === '65f1a2b3c4d5e6f7a8b9c0d1';
+    });
 }
 
 function getAllApplicationsForOfficer(filters = {}) {
-  let list = inMemoryApplications.map(normalizeApplication);
+  let list = inMemoryApplications
+    .filter((a) => !deletedApplicationIds.has(String(a._id || a.id)))
+    .map(normalizeApplication);
   if (filters.status) {
     list = list.filter((a) => a.status === filters.status);
   }
@@ -78,13 +95,16 @@ function getAllApplicationsForOfficer(filters = {}) {
 
 function getApplicationById(id) {
   const targetId = String(id);
+  if (deletedApplicationIds.has(targetId)) return null;
   const found = inMemoryApplications.find((a) => String(a._id || a.id) === targetId);
   return found ? normalizeApplication(found) : null;
 }
 
 module.exports = {
   inMemoryApplications,
+  deletedApplicationIds,
   addApplication,
+  deleteApplication,
   getApplicationsForUser,
   getAllApplicationsForOfficer,
   getApplicationById,

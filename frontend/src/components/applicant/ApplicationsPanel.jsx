@@ -64,7 +64,7 @@ function formatDate(value) {
   });
 }
 
-function DocRow({ dot, label, sub, pill, pillLabel }) {
+function DocRow({ dot, label, sub, pill, pillLabel, isMissing, onUpload, uploading }) {
   return (
     <div className="flex items-center justify-between gap-3 py-2 border-b border-slate-100 last:border-0">
       <div className="flex items-start gap-2.5 min-w-0">
@@ -74,9 +74,31 @@ function DocRow({ dot, label, sub, pill, pillLabel }) {
           <p className="text-[11px] text-slate-400 truncate">{sub}</p>
         </div>
       </div>
-      <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full shrink-0 ${pill}`}>
-        {pillLabel}
-      </span>
+      <div className="flex items-center gap-2 shrink-0">
+        <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${pill}`}>
+          {pillLabel}
+        </span>
+        {isMissing && onUpload && (
+          <label className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 cursor-pointer transition-colors shadow-2xs">
+            {uploading ? (
+              <Loader2 className="w-3 h-3 animate-spin" />
+            ) : (
+              <Upload className="w-3 h-3" />
+            )}
+            <span>{uploading ? 'Uploading...' : 'Upload'}</span>
+            <input
+              type="file"
+              accept=".pdf,image/jpeg,image/png"
+              disabled={uploading}
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) onUpload(f);
+              }}
+            />
+          </label>
+        )}
+      </div>
     </div>
   );
 }
@@ -227,10 +249,22 @@ export default function ApplicationsPanel({
         filtered.map((app) => {
           const meta = statusMeta(app.status);
           const documents = Array.isArray(app.documents) ? app.documents : [];
-          const rejected = documents.filter((d) => d?.status === 'rejected');
+          const activeTypes = new Set(
+            documents
+              .filter((d) => d?.status !== 'rejected' && d?.status !== 'superseded')
+              .map((d) => (d?.documentType || '').toLowerCase().replace(/[-_ ]/g, ''))
+          );
+          const rejected = documents.filter((d) => {
+            if (d?.status !== 'rejected') return false;
+            const dt = (d?.documentType || '').toLowerCase().replace(/[-_ ]/g, '');
+            return !activeTypes.has(dt);
+          });
           const requirements = getDocumentRequirements(app.loanType) || [];
-          const requiredTypes = new Set(requirements.map((r) => r.type));
-          const extras = documents.filter((d) => !requiredTypes.has(d?.documentType));
+          const requiredTypes = new Set(requirements.map((r) => r.type.toLowerCase().replace(/[-_ ]/g, '')));
+          const extras = documents.filter((d) => {
+            const dt = (d?.documentType || '').toLowerCase().replace(/[-_ ]/g, '');
+            return !requiredTypes.has(dt) && d?.status !== 'superseded';
+          });
           const isExpanded = activeExpandedId === app._id;
           const bank = getBank(app);
           const ToneIcon = TONE_ICON[meta.tone] || Clock;
@@ -337,7 +371,18 @@ export default function ApplicationsPanel({
                     </p>
                     <div>
                       {requirements.map((req) => {
-                        const match = documents.find((d) => d?.documentType === req.type);
+                        const rt = (req?.type || '').toLowerCase().replace(/[-_ ]/g, '');
+                        const match = documents.find((d) => {
+                          if (d?.status === 'superseded') return false;
+                          const dt = (d?.documentType || '').toLowerCase().replace(/[-_ ]/g, '');
+                          const pred = (d?.aiProcessing?.predictedType || '').toLowerCase().replace(/[-_ ]/g, '');
+                          return (
+                            dt === rt ||
+                            pred === rt ||
+                            (rt.includes('form16') && (dt.includes('form16') || pred.includes('form16') || dt.includes('itr')))
+                          );
+                        });
+                        const isMissing = !match;
                         const style = match
                           ? DOC_PILL[match.status] || DOC_PILL.pending_review
                           : MISSING_PILL;
@@ -349,6 +394,9 @@ export default function ApplicationsPanel({
                             sub={match?.originalName || 'Not uploaded'}
                             pill={style.pill}
                             pillLabel={style.label}
+                            isMissing={isMissing}
+                            uploading={uploading}
+                            onUpload={(f) => onReplace(app._id, req.type, f)}
                           />
                         );
                       })}
