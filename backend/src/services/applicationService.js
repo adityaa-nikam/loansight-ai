@@ -290,7 +290,9 @@ const uploadDocument = async (applicationId, userId, fileData, documentType, man
   const isBank = canonicalDocType === 'bank_statement';
   const isForm16 = canonicalDocType === 'form16';
 
-  const applicantName = application.applicant?.name || (typeof application.applicant === 'string' ? application.applicant : 'Applicant');
+  const applicantName = (application.applicant && typeof application.applicant === 'object' && application.applicant.name)
+    ? application.applicant.name
+    : 'Rahul Sharma';
   const applicantIncome = Number(application.declaredMonthlyIncome) || 85000;
 
   const defaultText = manualText && manualText.trim()

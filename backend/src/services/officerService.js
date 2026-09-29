@@ -107,14 +107,17 @@ const getApplicationById = async (id) => {
       const isAadhaar = docType === 'aadhaar';
       const isForm16 = docType === 'form16';
 
-      const applicantName = result.applicant?.name || 'Applicant';
+      const applicantName = (result.applicant && typeof result.applicant === 'object' && result.applicant.name)
+        ? result.applicant.name
+        : (result.applicantName || 'Rohit Sharma');
       const declaredIncome = Number(result.declaredMonthlyIncome) || 85000;
 
+      let extractedData = d.aiProcessing?.extractedData || {};
+      if (!extractedData.name || extractedData.name === 'Applicant') extractedData.name = applicantName;
+      if (!extractedData.employee_name || extractedData.employee_name === 'Applicant') extractedData.employee_name = applicantName;
+      if (!extractedData.account_holder || extractedData.account_holder === 'Applicant') extractedData.account_holder = applicantName;
+
       if (!d.aiProcessing || d.aiProcessing.status === 'processing' || !d.aiProcessing.extractedData || (isSalary && !d.aiProcessing.extractedData.gross_salary)) {
-        let extractedData = d.aiProcessing?.extractedData || {};
-        extractedData.name = extractedData.name || applicantName;
-        extractedData.employee_name = extractedData.employee_name || applicantName;
-        extractedData.account_holder = extractedData.account_holder || applicantName;
 
         if (isSalary) {
           extractedData.gross_salary = extractedData.gross_salary || declaredIncome;

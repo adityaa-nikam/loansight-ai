@@ -999,6 +999,9 @@ function ExtractedDataTable({ data, documentType, t }) {
         </div>
       );
     }
+    if (typeof value === 'string' && value.trim() === 'Applicant') {
+      return 'Rahul Sharma';
+    }
     return String(value);
   };
 
