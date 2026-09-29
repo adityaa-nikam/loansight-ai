@@ -748,6 +748,7 @@ function DocumentsTab({ app, requiredDocs, missingDocs, onDownload, onView, onRe
                         setAiData(prev => ({ ...prev, [doc._id]: undefined }));
                         fetchAiAnalysis(doc._id);
                       }}
+                      applicantName={app?.applicant?.name}
                       t={t}
                     />
                   )}
@@ -809,7 +810,7 @@ function AiStatusMini({ status, t }) {
 
 /* ===================== AI Analysis Panel ===================== */
 /* ===================== AI Analysis Panel ===================== */
-function AiAnalysisPanel({ doc, ai, reprocessing, onReprocess, onRefresh, t }) {
+function AiAnalysisPanel({ doc, ai, reprocessing, onReprocess, onRefresh, applicantName, t }) {
   const aiProcessing = ai?.data?.aiProcessing || doc.aiProcessing || {};
   const isLoading = ai?.loading;
   const error = ai?.error;
@@ -924,7 +925,7 @@ function AiAnalysisPanel({ doc, ai, reprocessing, onReprocess, onRefresh, t }) {
 
           {/* Extracted Data */}
           {aiProcessing.extractedData && Object.keys(aiProcessing.extractedData).length > 0 && (
-            <ExtractedDataTable data={aiProcessing.extractedData} documentType={aiType} applicantName={app?.applicant?.name} t={t} />
+            <ExtractedDataTable data={aiProcessing.extractedData} documentType={aiType} applicantName={applicantName} t={t} />
           )}
 
           {/* Processed timestamp */}
