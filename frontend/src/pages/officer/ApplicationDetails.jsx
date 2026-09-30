@@ -1004,7 +1004,7 @@ function ExtractedDataTable({ data, documentType, applicantName, t }) {
   };
 
   const entries = Object.entries(data);
-  const scalarEntries = entries.filter(([, v]) => !Array.isArray(v) && typeof v !== 'object');
+  const scalarEntries = entries.filter(([, v]) => !Array.isArray(v) && (typeof v !== 'object' || v === null));
   const arrayEntries = entries.filter(([, v]) => Array.isArray(v));
 
   return (

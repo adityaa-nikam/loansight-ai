@@ -241,11 +241,12 @@ def _fallback_extract_local(doc_key: str, raw_text: str, schema_cls: Type[BaseMo
             data["total_deductions"] = _clean_num(ded_m.group(1))
 
     elif "BANK" in key_upper:
-        holder_m = re.search(r"Account\s*Holder[^\w]*([A-Za-z\s]+)", raw_text, re.I)
+        holder_m = re.search(r"(?:Account\s*Holder|Name\s*of\s*Account\s*Holder|Customer\s*Name)[^\w\n]*\n*[:\-]?\s*([A-Za-z\s\.]+)", raw_text, re.I)
         if holder_m:
             clean_holder = holder_m.group(1).split("\n")[0].strip()
             data["account_holder"] = clean_holder
             data["account_holder_name"] = clean_holder
+            data["name"] = clean_holder
         acc_m = re.search(r"Account\s*Number\s*[:\-]?\s*([0-9]+)", raw_text, re.I)
         if acc_m:
             data["account_number"] = acc_m.group(1).strip()
@@ -264,6 +265,12 @@ def _fallback_extract_local(doc_key: str, raw_text: str, schema_cls: Type[BaseMo
         avg_m = re.search(r"Average\s*Balance\s*[:\-]?\s*[₹Rs\.]*\s*([0-9,]+(?:\.[0-9]+)?)", raw_text, re.I)
         if avg_m:
             data["average_balance"] = _clean_num(avg_m.group(1))
+        tc_m = re.search(r"Total\s*Credits\s*[:\-]?\s*[₹Rs\.]*\s*([0-9,]+(?:\.[0-9]+)?)", raw_text, re.I)
+        if tc_m:
+            data["total_credits"] = _clean_num(tc_m.group(1))
+        td_m = re.search(r"Total\s*Debits\s*[:\-]?\s*[₹Rs\.]*\s*([0-9,]+(?:\.[0-9]+)?)", raw_text, re.I)
+        if td_m:
+            data["total_debits"] = _clean_num(td_m.group(1))
 
         salary_credits = []
         for line in raw_text.split("\n"):
@@ -282,21 +289,43 @@ def _fallback_extract_local(doc_key: str, raw_text: str, schema_cls: Type[BaseMo
         emp_m = re.search(r"Employee\s*Name\s*[:\-]?\s*([A-Za-z\s]+)", raw_text, re.I)
         if emp_m:
             data["employee_name"] = emp_m.group(1).split("\n")[0].strip()
-        pan_m = re.search(r"Employee\s*PAN\s*[:\-]?\s*([A-Z]{5}[0-9]{4}[A-Z])", raw_text, re.I)
+        pan_m = re.search(r"(?:Employee\s*PAN|PAN\s*of\s*Employee)[^\w]*([A-Z]{5}[0-9]{4}[A-Z])", raw_text, re.I)
         if pan_m:
-            data["employee_pan"] = pan_m.group(1).upper()
+            clean_pan = pan_m.group(1).upper()
+            data["pan_employee"] = clean_pan
+            data["employee_pan"] = clean_pan
         empr_m = re.search(r"Employer\s*Name\s*[:\-]?\s*([A-Za-z0-9\s]+)", raw_text, re.I)
         if empr_m:
             data["employer_name"] = empr_m.group(1).split("\n")[0].strip()
-        tan_m = re.search(r"Employer\s*TAN\s*[:\-]?\s*([A-Z]{4}[0-9]{5}[A-Z])", raw_text, re.I)
+        tan_m = re.search(r"(?:Employer\s*TAN|TAN\s*of\s*Employer|TAN)[^\w]*([A-Z]{4}[0-9]{5}[A-Z])", raw_text, re.I)
         if tan_m:
-            data["employer_tan"] = tan_m.group(1).upper()
-        gross_m = re.search(r"Gross\s*Salary\s*[\r\n\s]*[₹Rs\.]*\s*([0-9,]+(?:\.[0-9]+)?)", raw_text, re.I)
+            clean_tan = tan_m.group(1).upper()
+            data["tan_employer"] = clean_tan
+            data["employer_tan"] = clean_tan
+        ay_m = re.search(r"Assessment\s*Year\s*[:\-]?\s*([0-9]{4}\s*[\-\/]\s*[0-9]{2,4})", raw_text, re.I)
+        if ay_m:
+            data["assessment_year"] = ay_m.group(1).strip()
+        fy_m = re.search(r"Financial\s*Year\s*[:\-]?\s*([0-9]{4}\s*[\-\/]\s*[0-9]{2,4})", raw_text, re.I)
+        if fy_m:
+            data["financial_year"] = fy_m.group(1).strip()
+        gross_m = re.search(r"Gross\s*Salary[^\n\r]*[\r\n\s]*[₹Rs\.]*\s*([0-9,]+(?:\.[0-9]+)?)", raw_text, re.I)
         if gross_m:
             data["gross_salary"] = _clean_num(gross_m.group(1))
-        taxable_m = re.search(r"Total\s*Taxable\s*Income\s*[\r\n\s]*[₹Rs\.]*\s*([0-9,]+(?:\.[0-9]+)?)", raw_text, re.I)
+        net_m = re.search(r"Net\s*Taxable\s*Salary[^\n\r]*[\r\n\s]*[₹Rs\.]*\s*([0-9,]+(?:\.[0-9]+)?)", raw_text, re.I)
+        if net_m:
+            data["net_taxable_salary"] = _clean_num(net_m.group(1))
+        ded_m = re.search(r"Deductions\s*under\s*Chapter\s*VI-A[^\n\r]*[\r\n\s]*[₹Rs\.]*\s*([0-9,]+(?:\.[0-9]+)?)", raw_text, re.I)
+        if ded_m:
+            data["total_deductions"] = _clean_num(ded_m.group(1))
+        taxable_m = re.search(r"Total\s*Taxable\s*Income[^\n\r]*[\r\n\s]*[₹Rs\.]*\s*([0-9,]+(?:\.[0-9]+)?)", raw_text, re.I)
         if taxable_m:
             data["total_taxable_income"] = _clean_num(taxable_m.group(1))
+        tax_m = re.search(r"Total\s*Tax\s*Payable[^\n\r]*[\r\n\s]*[₹Rs\.]*\s*([0-9,]+(?:\.[0-9]+)?)", raw_text, re.I)
+        if tax_m:
+            data["tax_payable"] = _clean_num(tax_m.group(1))
+        tds_m = re.search(r"Total\s*TDS[^\n\r]*[\r\n\s]*[₹Rs\.]*\s*([0-9,]+(?:\.[0-9]+)?)", raw_text, re.I)
+        if tds_m:
+            data["tds_deducted"] = _clean_num(tds_m.group(1))
 
     try:
         inst = schema_cls(**data)

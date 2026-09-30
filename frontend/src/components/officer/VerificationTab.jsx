@@ -17,6 +17,7 @@ import {
   BarChart3,
   Zap,
   User,
+  UserCheck,
   Calendar,
   CreditCard,
   Phone,
@@ -104,19 +105,16 @@ const ActionBadge = ({ action }) => {
 
 /* ───────── Source Resolution Helper for Cards ───────── */
 
-const resolveCheckSources = (check) => {
-  if (check.sourceA?.values?.length && check.sourceB?.values?.length) {
-    return { sourceA: check.sourceA, sourceB: check.sourceB };
-  }
-
+const resolveCheckSources = (check, app) => {
   const ev = check.evidence || {};
+  const declaredAccountName = ev['Applicant Account'] || ev['Declared Name'] || ev['Declared Profile'] || app?.applicant?.name || app?.applicantName;
 
   switch (check.type) {
     case 'IDENTITY_NAME_MATCH': {
       const idVals = [];
+      if (declaredAccountName) idVals.push(`Account: ${declaredAccountName}`);
       if (ev['PAN Card']) idVals.push(`PAN: ${ev['PAN Card']}`);
       if (ev['Aadhaar Card']) idVals.push(`Aadhaar: ${ev['Aadhaar Card']}`);
-      if (ev['Declared Name'] && !idVals.length) idVals.push(`Declared: ${ev['Declared Name']}`);
 
       const finVals = [];
       if (ev['Salary Slip']) finVals.push(`Salary Slip: ${ev['Salary Slip']}`);
@@ -124,8 +122,8 @@ const resolveCheckSources = (check) => {
 
       return {
         sourceA: {
-          label: 'PAN & Aadhaar',
-          values: idVals.length ? idVals : ['PAN: Not Provided', 'Aadhaar: Not Provided'],
+          label: 'Applicant & Identity',
+          values: idVals.length ? idVals : ['Account: Not Provided'],
         },
         sourceB: {
           label: 'Salary Slip & Bank',
@@ -178,9 +176,13 @@ const resolveCheckSources = (check) => {
     case 'PAN_CONSISTENCY': {
       const panVal = ev['PAN Card'] || '-';
       const slipPan = ev['Salary Slip'] || ev['Form 16'] || '-';
+      const isCleanMismatch = check.status === 'FLAGGED' || (
+        panVal !== '-' && slipPan !== '-' &&
+        panVal.replace(/[^A-Z0-9]/gi, '').toUpperCase() !== slipPan.replace(/[^A-Z0-9]/gi, '').toUpperCase()
+      );
       return {
         sourceA: { label: 'PAN Card', values: [`PAN: ${panVal}`, `Format: ${panVal !== '-' ? 'Valid' : 'Pending'}`] },
-        sourceB: { label: 'Cross-Reference', values: [`Salary Slip: ${slipPan}`, `Status: ${slipPan !== '-' ? 'Matched' : 'Pending'}`] },
+        sourceB: { label: 'Cross-Reference', values: [`Salary Slip: ${slipPan}`, `Status: ${slipPan === '-' ? 'Pending' : (isCleanMismatch ? 'Mismatch' : 'Matched')}`] },
       };
     }
 
@@ -396,15 +398,24 @@ const ExtractedDataTable = ({ checks = [], documents = [], app, t }) => {
   const panName = panDoc.name || evName['PAN Card'] || evName['PAN'] || (panDocObj ? 'Unreadable' : 'N/A (No Doc)');
   const aadhaarName = aadhaarDoc.name || evName['Aadhaar Card'] || evName['AADHAAR'] || (aadhaarDocObj ? 'Unreadable' : 'N/A (No Doc)');
   const salaryName = salaryDoc.employee_name || evName['Salary Slip'] || evName['SALARY_SLIP'] || (salaryDocObj ? 'Unreadable' : 'N/A (No Doc)');
-  const bankName = bankDoc.account_holder || evName['Bank Statement'] || evName['STATEMENT'] || (bankDocObj ? 'Unreadable' : 'N/A (No Doc)');
+  const bankName = bankDoc.account_holder || bankDoc.account_holder_name || bankDoc.name || evName['Bank Statement'] || evName['STATEMENT'] || (bankDocObj ? 'Not extracted' : 'N/A (No Doc)');
+
+  const declaredAccountName = app?.applicant?.name || app?.applicantName || evName['Applicant Account'] || evName['Declared Name'] || 'N/A';
+  const declaredDob = app?.applicant?.date_of_birth || app?.applicant?.dob || evDob['Applicant Account'] || 'N/A (Not declared)';
+  const declaredPan = app?.applicant?.pan || evPan['Applicant Account'] || 'N/A (Not declared)';
+  const declaredAadhaar = app?.applicant?.aadhaar || evAadhaar['Applicant Account'] || 'N/A (Not declared)';
+  const declaredIncome = app?.declaredMonthlyIncome ? `₹${Number(app.declaredMonthlyIncome).toLocaleString('en-IN')}` : (evInc['declared_monthly_income'] ? (typeof evInc['declared_monthly_income'] === 'number' ? `₹${evInc['declared_monthly_income'].toLocaleString('en-IN')}` : evInc['declared_monthly_income']) : 'N/A');
+  const declaredEmp = app?.employerName || app?.applicant?.employer || evEmp['Applicant Account'] || 'N/A (Not declared)';
 
   // Verified Legal Name from identity docs
-  const verifiedLegalName = (panName !== 'N/A (No Doc)' && panName !== 'Unreadable') ? panName : ((aadhaarName !== 'N/A (No Doc)' && aadhaarName !== 'Unreadable') ? aadhaarName : app?.applicant?.name || 'N/A');
+  const verifiedLegalName = (panName !== 'N/A (No Doc)' && panName !== 'Unreadable') ? panName : ((aadhaarName !== 'N/A (No Doc)' && aadhaarName !== 'Unreadable') ? aadhaarName : declaredAccountName);
+  const accountBaseRef = declaredAccountName !== 'N/A' ? declaredAccountName : verifiedLegalName;
 
   // Mismatch logic
   const allNames = [panName, aadhaarName, salaryName, bankName].filter(n => n && !n.startsWith('N/A') && n !== 'Unreadable');
-  const hasMismatchWithFinancialDocs = allNames.length > 1 && allNames.some(
-    n => n.trim().toLowerCase() !== verifiedLegalName.trim().toLowerCase()
+  const hasMismatchWithFinancialDocs = allNames.length > 0 && (
+    (declaredAccountName !== 'N/A' && allNames.some(n => n.trim().toLowerCase() !== declaredAccountName.trim().toLowerCase())) ||
+    (allNames.length > 1 && allNames.some(n => n.trim().toLowerCase() !== verifiedLegalName.trim().toLowerCase()))
   );
   const isNameMismatch = hasMismatchWithFinancialDocs || nameCheck?.status === 'FLAGGED';
 
@@ -420,7 +431,10 @@ const ExtractedDataTable = ({ checks = [], documents = [], app, t }) => {
   const aadhaarPan = aadhaarDoc.pan_number || (aadhaarDocObj ? 'Linked' : 'N/A (No Doc)');
   const salaryPan = salaryDoc.pan_number || evPan['Salary Slip'] || (salaryDocObj ? 'N/A' : 'N/A (No Doc)');
   const bankPan = bankDoc.pan_number || evPan['Bank Statement'] || (bankDocObj ? 'N/A' : 'N/A (No Doc)');
-  const isPanMismatch = panCheck?.status === 'FLAGGED';
+  
+  const allPanValues = [panNum, salaryPan, bankPan].filter(p => p && !p.startsWith('N/A') && p !== 'Unreadable' && p !== 'Linked');
+  const hasPanMismatch = allPanValues.length > 1 && allPanValues.some(p => p.replace(/[^A-Z0-9]/gi, '').toUpperCase() !== allPanValues[0].replace(/[^A-Z0-9]/gi, '').toUpperCase());
+  const isPanMismatch = panCheck?.status === 'FLAGGED' || hasPanMismatch;
 
   // 4. Aadhaar Number values
   const panAadhaar = panDoc.aadhaar_number || (panDocObj ? 'Linked' : 'N/A (No Doc)');
@@ -455,6 +469,7 @@ const ExtractedDataTable = ({ checks = [], documents = [], app, t }) => {
     {
       icon: User,
       type: 'Full Name',
+      account: declaredAccountName,
       pan: panName,
       aadhaar: aadhaarName,
       salarySlip: salaryName,
@@ -462,11 +477,12 @@ const ExtractedDataTable = ({ checks = [], documents = [], app, t }) => {
       isMismatch: isNameMismatch,
       statusBadge: isNameMismatch ? 'Mismatch' : 'Match',
       highlightMismatches: true,
-      baseReference: verifiedLegalName,
+      baseReference: accountBaseRef,
     },
     {
       icon: Calendar,
       type: 'Date of Birth',
+      account: declaredDob,
       pan: panDob,
       aadhaar: aadhaarDob,
       salarySlip: salaryDob,
@@ -478,17 +494,20 @@ const ExtractedDataTable = ({ checks = [], documents = [], app, t }) => {
     {
       icon: CreditCard,
       type: 'PAN Number',
+      baseReference: panNum && !panNum.startsWith('N/A') ? panNum : (salaryPan && !salaryPan.startsWith('N/A') ? salaryPan : ''),
+      account: declaredPan,
       pan: panNum,
       aadhaar: aadhaarPan,
       salarySlip: salaryPan,
       bankStatement: bankPan,
       isMismatch: isPanMismatch,
       statusBadge: isPanMismatch ? 'Mismatch' : 'Match',
-      highlightMismatches: false,
+      highlightMismatches: true,
     },
     {
       icon: Fingerprint,
       type: 'Aadhaar Number',
+      account: declaredAadhaar,
       pan: panAadhaar,
       aadhaar: aadhaarNum,
       salarySlip: salaryAadhaar,
@@ -500,6 +519,7 @@ const ExtractedDataTable = ({ checks = [], documents = [], app, t }) => {
     {
       icon: IndianRupee,
       type: 'Monthly Income / Salary Credit',
+      account: declaredIncome,
       pan: panInc,
       aadhaar: aadhaarInc,
       salarySlip: formatSalary,
@@ -511,6 +531,7 @@ const ExtractedDataTable = ({ checks = [], documents = [], app, t }) => {
     {
       icon: Building2,
       type: 'Employer / Company Name',
+      account: declaredEmp,
       pan: 'N/A (Identity Doc)',
       aadhaar: 'N/A (Identity Doc)',
       salarySlip: salaryEmp,
@@ -545,7 +566,7 @@ const ExtractedDataTable = ({ checks = [], documents = [], app, t }) => {
     <div className="bg-white border border-slate-200 rounded-2xl shadow-soft overflow-hidden">
       <div className="px-6 py-4 border-b border-slate-200">
         <h3 className="text-sm font-bold text-slate-900">{t ? t('extracted_data_overview', 'Extracted Data Overview') : 'Extracted Data Overview'}</h3>
-        <p className="text-xs text-slate-500">{t ? t('extracted_data_sub', 'Key information extracted from uploaded documents') : 'Key information extracted from uploaded documents'}</p>
+        <p className="text-xs text-slate-500">{t ? t('extracted_data_sub', 'Key information extracted from uploaded documents vs declared applicant account') : 'Key information extracted from uploaded documents vs declared applicant account'}</p>
       </div>
 
       {/* Mobile View (< md) */}
@@ -579,6 +600,20 @@ const ExtractedDataTable = ({ checks = [], documents = [], app, t }) => {
               </div>
 
               <div className="grid grid-cols-2 gap-2 pt-1 text-xs">
+                <div className="p-2.5 bg-emerald-50/70 rounded-lg border border-emerald-200 col-span-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-emerald-800 font-bold uppercase flex items-center gap-1">
+                      <UserCheck className="w-3 h-3 text-emerald-600" />
+                      {t ? t('applicant_account_col', 'Applicant Account (Logged In)') : 'Applicant Account (Logged In)'}
+                    </span>
+                    {row.type === 'Full Name' && row.account && row.account !== 'N/A' && (
+                      <span className="text-[9px] bg-emerald-200 text-emerald-900 font-bold px-1.5 py-0.5 rounded">
+                        Active User
+                      </span>
+                    )}
+                  </div>
+                  <div className="font-bold text-slate-900 text-xs mt-1">{row.account || '—'}</div>
+                </div>
                 <div className="p-2 bg-slate-50 rounded border border-slate-200">
                   <span className="text-[10px] text-slate-400 font-mono uppercase block">{t ? t('pan_col', 'PAN') : 'PAN'}</span>
                   <div className="block truncate">{renderValue(row.pan, isPanMismatch)}</div>
@@ -606,27 +641,33 @@ const ExtractedDataTable = ({ checks = [], documents = [], app, t }) => {
         <table className="w-full text-xs">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase tracking-wider font-bold">
-              <th className="text-left py-3.5 px-5 w-[20%]">{t ? t('info_type', 'Information Type') : 'Information Type'}</th>
-              <th className="text-left py-3.5 px-4 w-[16%]">{t ? t('pan_col', 'PAN') : 'PAN'}</th>
-              <th className="text-left py-3.5 px-4 w-[16%]">{t ? t('aadhaar_col', 'Aadhaar') : 'Aadhaar'}</th>
-              <th className="text-left py-3.5 px-4 w-[16%]">{t ? t('salary_slip_col', 'Salary Slip') : 'Salary Slip'}</th>
-              <th className="text-left py-3.5 px-4 w-[16%]">{t ? t('bank_statement_col', 'Bank Statement') : 'Bank Statement'}</th>
-              <th className="text-center py-3.5 px-4 w-[16%]">{t ? t('consistency_col', 'Consistency') : 'Consistency'}</th>
+              <th className="text-left py-3.5 px-4 w-[16%]">{t ? t('info_type', 'Information Type') : 'Information Type'}</th>
+              <th className="text-left py-3.5 px-3.5 w-[17%] bg-emerald-50/50 text-emerald-800">
+                <div className="flex items-center gap-1.5">
+                  <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>{t ? t('applicant_account_col', 'Applicant Account') : 'Applicant Account'}</span>
+                </div>
+              </th>
+              <th className="text-left py-3.5 px-3 w-[14%]">{t ? t('pan_col', 'PAN') : 'PAN'}</th>
+              <th className="text-left py-3.5 px-3 w-[14%]">{t ? t('aadhaar_col', 'Aadhaar') : 'Aadhaar'}</th>
+              <th className="text-left py-3.5 px-3 w-[14%]">{t ? t('salary_slip_col', 'Salary Slip') : 'Salary Slip'}</th>
+              <th className="text-left py-3.5 px-3 w-[13%]">{t ? t('bank_statement_col', 'Bank Statement') : 'Bank Statement'}</th>
+              <th className="text-center py-3.5 px-3 w-[12%]">{t ? t('consistency_col', 'Consistency') : 'Consistency'}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {matrixRows.map((row, idx) => {
               const Icon = row.icon;
               const refName = (row.baseReference || '').trim().toLowerCase();
-              const isPanMismatch = row.type === 'Full Name' && row.isMismatch && !row.pan.startsWith('N/A') && row.pan.trim().toLowerCase() !== refName;
-              const isAadhaarMismatch = row.type === 'Full Name' && row.isMismatch && !row.aadhaar.startsWith('N/A') && row.aadhaar.trim().toLowerCase() !== refName;
-              const isSalaryMismatch = row.type === 'Full Name' && row.isMismatch && !row.salarySlip.startsWith('N/A') && row.salarySlip.trim().toLowerCase() !== refName;
-              const isBankMismatch = row.type === 'Full Name' && row.isMismatch && !row.bankStatement.startsWith('N/A') && row.bankStatement.trim().toLowerCase() !== refName;
+              const isPanMismatch = (row.type === 'Full Name' || row.type === 'PAN Number') && row.isMismatch && !row.pan.startsWith('N/A') && row.pan.trim().toLowerCase() !== refName;
+              const isAadhaarMismatch = (row.type === 'Full Name' || row.type === 'PAN Number') && row.isMismatch && !row.aadhaar.startsWith('N/A') && row.aadhaar.trim().toLowerCase() !== refName && row.aadhaar !== 'Linked';
+              const isSalaryMismatch = (row.type === 'Full Name' || row.type === 'PAN Number') && row.isMismatch && !row.salarySlip.startsWith('N/A') && row.salarySlip.trim().toLowerCase() !== refName;
+              const isBankMismatch = (row.type === 'Full Name' || row.type === 'PAN Number') && row.isMismatch && !row.bankStatement.startsWith('N/A') && row.bankStatement.trim().toLowerCase() !== refName;
 
               return (
                 <tr key={idx} className="hover:bg-slate-50 transition-colors">
-                  <td className="py-3.5 px-5">
-                    <div className="flex items-center gap-2.5">
+                  <td className="py-3.5 px-4">
+                    <div className="flex items-center gap-2">
                       <div className="w-6 h-6 rounded-md bg-slate-100 text-slate-600 flex items-center justify-center shrink-0">
                         <Icon className="w-3.5 h-3.5 text-slate-500" />
                       </div>
@@ -634,12 +675,23 @@ const ExtractedDataTable = ({ checks = [], documents = [], app, t }) => {
                     </div>
                   </td>
 
-                  <td className="py-3.5 px-4">{renderValue(row.pan, isPanMismatch)}</td>
-                  <td className="py-3.5 px-4">{renderValue(row.aadhaar, isAadhaarMismatch)}</td>
-                  <td className="py-3.5 px-4">{renderValue(row.salarySlip, isSalaryMismatch)}</td>
-                  <td className="py-3.5 px-4">{renderValue(row.bankStatement, isBankMismatch)}</td>
+                  <td className="py-3.5 px-3.5 bg-emerald-50/20">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="font-bold text-slate-900">{row.account || '—'}</span>
+                      {row.type === 'Full Name' && row.account && row.account !== 'N/A' && (
+                        <span className="inline-flex items-center text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.2 rounded border border-emerald-200">
+                          Logged In
+                        </span>
+                      )}
+                    </div>
+                  </td>
 
-                  <td className="py-3.5 px-4 text-center">
+                  <td className="py-3.5 px-3">{renderValue(row.pan, isPanMismatch)}</td>
+                  <td className="py-3.5 px-3">{renderValue(row.aadhaar, isAadhaarMismatch)}</td>
+                  <td className="py-3.5 px-3">{renderValue(row.salarySlip, isSalaryMismatch)}</td>
+                  <td className="py-3.5 px-3">{renderValue(row.bankStatement, isBankMismatch)}</td>
+
+                  <td className="py-3.5 px-3 text-center">
                     {row.statusBadge === 'Match' ? (
                       <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                         {t ? t('match', 'Match') : 'Match'}
@@ -662,7 +714,7 @@ const ExtractedDataTable = ({ checks = [], documents = [], app, t }) => {
 
 /* ───────── Verification Results ───────── */
 
-const VerificationResults = ({ checks, t }) => {
+const VerificationResults = ({ checks, app, t }) => {
   const [filter, setFilter] = useState('all');
   const [severityFilter, setSeverityFilter] = useState('all');
   const [expandedCheck, setExpandedCheck] = useState(null);
@@ -758,7 +810,7 @@ const VerificationResults = ({ checks, t }) => {
         ) : (
           filtered.map((check, idx) => {
             const isExpanded = expandedCheck === idx;
-            const sources = resolveCheckSources(check);
+            const sources = resolveCheckSources(check, app);
 
             return (
               <div
@@ -831,18 +883,57 @@ const VerificationResults = ({ checks, t }) => {
                   <div className="bg-cream-50/90 border-t border-cream-200 px-6 py-4 text-xs space-y-3">
                     <p className="text-sm text-charcoal-700 font-medium">{check.message}</p>
 
-                    {check.evidence && Object.keys(check.evidence).length > 0 && (
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 pt-1">
-                        {Object.entries(check.evidence).map(([k, v]) => (
-                          <div key={k} className="bg-white p-2 rounded-lg border border-cream-200 shadow-2xs">
-                            <span className="text-[10px] font-semibold text-charcoal-400 uppercase block mb-0.5">
-                              {k.replace(/_/g, ' ')}
-                            </span>
-                            <span className="text-xs font-bold text-charcoal-900 block truncate" title={String(v)}>
-                              {v !== null && v !== undefined ? String(v) : '—'}
-                            </span>
-                          </div>
-                        ))}
+                    {check.evidence && (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 pt-1">
+                        {(() => {
+                          let entries = Object.entries(check.evidence);
+                          const appName = app?.applicant?.name || app?.applicantName;
+                          if (check.type === 'IDENTITY_NAME_MATCH') {
+                            const hasAccount = entries.some(([k]) => k.toLowerCase().includes('account') || k.toLowerCase().includes('declared'));
+                            if (!hasAccount && appName) {
+                              entries = [['Applicant Account', appName], ...entries];
+                            } else {
+                              entries.sort(([a], [b]) => {
+                                const aIsAcc = a.toLowerCase().includes('account') || a.toLowerCase().includes('declared');
+                                const bIsAcc = b.toLowerCase().includes('account') || b.toLowerCase().includes('declared');
+                                if (aIsAcc && !bIsAcc) return -1;
+                                if (!aIsAcc && bIsAcc) return 1;
+                                return 0;
+                              });
+                            }
+                          }
+                          return entries.map(([k, v]) => {
+                            const isAccountKey = k.toLowerCase().includes('account') || k.toLowerCase().includes('declared');
+                            return (
+                              <div
+                                key={k}
+                                className={`p-2.5 rounded-lg border shadow-2xs transition-all ${
+                                  isAccountKey
+                                    ? 'bg-emerald-50/90 border-emerald-300 ring-1 ring-emerald-200'
+                                    : 'bg-white border-cream-200'
+                                }`}
+                              >
+                                <div className="flex items-center justify-between gap-1 mb-1">
+                                  <span className={`text-[10px] font-bold uppercase tracking-wider block ${
+                                    isAccountKey ? 'text-emerald-800' : 'text-charcoal-400'
+                                  }`}>
+                                    {k.replace(/_/g, ' ')}
+                                  </span>
+                                  {isAccountKey && (
+                                    <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-emerald-200 text-emerald-900 border border-emerald-300 uppercase">
+                                      Logged In
+                                    </span>
+                                  )}
+                                </div>
+                                <span className={`text-xs block truncate ${
+                                  isAccountKey ? 'text-emerald-950 font-extrabold' : 'text-charcoal-900 font-bold'
+                                }`} title={String(v)}>
+                                  {v !== null && v !== undefined ? String(v) : '—'}
+                                </span>
+                              </div>
+                            );
+                          });
+                        })()}
                       </div>
                     )}
                   </div>
@@ -1131,7 +1222,7 @@ const VerificationTab = ({ applicationId, app, documents }) => {
       <ExtractedDataTable checks={checks} documents={docsList} app={app} t={t} />
 
       {/* 4. Verification Results */}
-      <VerificationResults checks={checks} t={t} />
+      <VerificationResults checks={checks} app={app} t={t} />
 
       {/* 5. AI Analysis Summary */}
       <AISummaryCard data={data} riskLevel={riskLevel} flaggedCount={flaggedCount} t={t} />

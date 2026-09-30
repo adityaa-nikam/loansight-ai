@@ -135,13 +135,13 @@ const runValidation = async (applicationId) => {
 
     try {
       const response = await axios.post(`${AI_SERVICE_URL}/api/verify-application`, payload, {
-        timeout: 4000,
+        timeout: 45000,
       });
       validationData = response.data;
     } catch (aiErr) {
       console.warn(`[Validation] Remote AI Service call failed (${aiErr.message}), executing intelligent local cross-document verification engine.`);
       
-      const appApplicantName = application.applicant?.name || (typeof application.applicant === 'string' ? application.applicant : 'Abhijeet Sawant');
+      const appApplicantName = application.applicant?.name || (typeof application.applicant === 'string' ? application.applicant : (application.applicantName || 'Rohit Sharma'));
       const declaredInc = Number(application.declaredMonthlyIncome) || 85000;
       const formattedInc = `₹${declaredInc.toLocaleString('en-IN')}`;
 
@@ -149,11 +149,13 @@ const runValidation = async (applicationId) => {
       const salaryDoc = docs.find(d => (d.documentType || d.aiProcessing?.predictedType || '').toLowerCase().includes('salary') || (d.documentType || '').toLowerCase().includes('slip'));
       const bankDoc = docs.find(d => (d.documentType || d.aiProcessing?.predictedType || '').toLowerCase().includes('bank') || (d.documentType || '').toLowerCase().includes('statement'));
       const aadhaarDoc = docs.find(d => (d.documentType || d.aiProcessing?.predictedType || '').toLowerCase().includes('aadhaar') || (d.documentType || '').toLowerCase().includes('adhar'));
+      const f16Doc = docs.find(d => (d.documentType || d.aiProcessing?.predictedType || '').toLowerCase().includes('form16') || (d.documentType || '').toLowerCase().includes('16'));
 
       const panName = panDoc?.aiProcessing?.extractedData?.name || (panDoc ? 'Not extracted' : 'N/A');
       const salaryName = salaryDoc?.aiProcessing?.extractedData?.employee_name || (salaryDoc ? 'Not extracted' : 'N/A');
-      const bankName = bankDoc?.aiProcessing?.extractedData?.account_holder || (bankDoc ? 'Not extracted' : 'N/A');
+      const bankName = bankDoc?.aiProcessing?.extractedData?.account_holder || bankDoc?.aiProcessing?.extractedData?.account_holder_name || bankDoc?.aiProcessing?.extractedData?.name || (bankDoc ? 'Not extracted' : 'N/A');
       const aadhaarName = aadhaarDoc?.aiProcessing?.extractedData?.name || (aadhaarDoc ? 'Not extracted' : 'N/A');
+      const f16Name = f16Doc?.aiProcessing?.extractedData?.employee_name;
 
       const primaryDocName = panDoc?.aiProcessing?.extractedData?.name || aadhaarDoc?.aiProcessing?.extractedData?.name || salaryDoc?.aiProcessing?.extractedData?.employee_name;
       const isNameMismatch = appApplicantName && primaryDocName && appApplicantName.trim().toLowerCase() !== primaryDocName.trim().toLowerCase();
@@ -164,6 +166,18 @@ const runValidation = async (applicationId) => {
 
       const panNum = panDoc?.aiProcessing?.extractedData?.pan_number;
       const salaryPan = salaryDoc?.aiProcessing?.extractedData?.pan_number;
+      const f16Pan = f16Doc?.aiProcessing?.extractedData?.pan_employee || f16Doc?.aiProcessing?.extractedData?.employee_pan;
+
+      const panCardClean = panNum ? panNum.replace(/[^A-Z0-9]/gi, '').toUpperCase() : null;
+      const salaryPanClean = salaryPan ? salaryPan.replace(/[^A-Z0-9]/gi, '').toUpperCase() : null;
+      const f16PanClean = f16Pan ? f16Pan.replace(/[^A-Z0-9]/gi, '').toUpperCase() : null;
+
+      const panEntries = [];
+      if (panCardClean) panEntries.push({ src: 'PAN Card', raw: panNum, clean: panCardClean });
+      if (salaryPanClean) panEntries.push({ src: 'Salary Slip', raw: salaryPan, clean: salaryPanClean });
+      if (f16PanClean) panEntries.push({ src: 'Form 16', raw: f16Pan, clean: f16PanClean });
+
+      const isPanMismatch = panEntries.length >= 2 && panEntries.some(p => p.clean !== panEntries[0].clean);
 
       const aadhaarNum = aadhaarDoc?.aiProcessing?.extractedData?.aadhaar_number;
       const salaryNet = salaryDoc?.aiProcessing?.extractedData?.net_salary;
@@ -183,6 +197,7 @@ const runValidation = async (applicationId) => {
             'Aadhaar Card': aadhaarName,
             'Salary Slip': salaryName,
             'Bank Statement': bankName,
+            ...(f16Name ? { 'Form 16': f16Name } : {}),
           },
           sourceA: {
             label: 'Applicant & Identity',
@@ -214,15 +229,32 @@ const runValidation = async (applicationId) => {
         },
         {
           type: 'PAN_CONSISTENCY',
-          status: 'PASSED',
-          severity: 'HIGH',
-          message: panNum
-            ? `PAN number ${panNum} format and verification confirmed.`
-            : 'PAN number verification evaluated.',
+          status: isPanMismatch ? 'FLAGGED' : 'PASSED',
+          severity: isPanMismatch ? 'HIGH' : 'LOW',
+          message: isPanMismatch
+            ? `PAN number mismatch detected across documents: ${panEntries.map(p => `${p.src} ('${p.raw}')`).join(' differs from ')}.`
+            : (panNum || salaryPan
+              ? `PAN number ${panNum || salaryPan} format and verification confirmed.`
+              : 'PAN number verification evaluated.'),
           evidence: {
             'PAN Card': panNum || 'N/A',
             'Salary Slip': salaryPan || 'N/A',
-          }
+            ...(f16Pan ? { 'Form 16': f16Pan } : {}),
+          },
+          sourceA: {
+            label: 'PAN Card',
+            values: [
+              `PAN: ${panNum || 'N/A'}`,
+              `Format: ${panNum ? 'Valid' : 'Pending'}`,
+            ],
+          },
+          sourceB: {
+            label: 'Cross-Reference',
+            values: [
+              `Salary Slip: ${salaryPan || 'N/A'}`,
+              `Status: ${isPanMismatch ? 'Mismatch' : 'Matched'}`,
+            ],
+          },
         },
         {
           type: 'AADHAAR_VERIFICATION',

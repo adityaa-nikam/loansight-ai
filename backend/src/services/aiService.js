@@ -131,9 +131,9 @@ function extractTextFromFileBuffer(fileBuffer, mimetype, docType) {
   if (aadhaarMatch) extractedData.aadhaar_number = aadhaarMatch[1].replace(/\s+/g, '-');
 
   // 3. Name (Match "Name:", "Employee Name:", "Account Holder:")
-  const nameMatch = textContent.match(/(?:Employee\s+Name|Account\s+Holder|Name|नाम)\s*[:\-]?\s*([A-Za-z\s\.]{3,30})/i);
+  const nameMatch = textContent.match(/(?:Employee\s+Name|Account\s+Holder|Name|नाम)[^\w\r\n]*[\r\n\s]*[:\-]?\s*([A-Za-z\s\.]{3,30})/i);
   if (nameMatch) {
-    const cleanName = nameMatch[1].trim().replace(/\s+/g, ' ');
+    const cleanName = nameMatch[1].split(/[\r\n]/)[0].trim().replace(/\s+/g, ' ');
     if (cleanName.length >= 3 && !/department|income|govt|india|permanent|account|bank/i.test(cleanName)) {
       extractedData.name = cleanName;
       extractedData.employee_name = cleanName;
@@ -141,15 +141,31 @@ function extractTextFromFileBuffer(fileBuffer, mimetype, docType) {
     }
   }
 
-  // 4. Date of Birth
+  // 4. Form 16 Specifics
+  const f16PanMatch = textContent.match(/(?:Employee\s*PAN|PAN\s*of\s*Employee)[^\w]*([A-Z]{5}[0-9]{4}[A-Z])/i);
+  if (f16PanMatch) {
+    extractedData.pan_employee = f16PanMatch[1].toUpperCase();
+    extractedData.employee_pan = f16PanMatch[1].toUpperCase();
+  }
+  const f16TanMatch = textContent.match(/(?:Employer\s*TAN|TAN\s*of\s*Employer|TAN)[^\w]*([A-Z]{4}[0-9]{5}[A-Z])/i);
+  if (f16TanMatch) {
+    extractedData.tan_employer = f16TanMatch[1].toUpperCase();
+    extractedData.employer_tan = f16TanMatch[1].toUpperCase();
+  }
+  const f16GrossMatch = textContent.match(/Gross\s*Salary[^\d₹Rs]*[₹Rs\.]*\s*([\d,]{4,12})/i);
+  if (f16GrossMatch) {
+    extractedData.gross_salary = Number(f16GrossMatch[1].replace(/,/g, ''));
+  }
+
+  // 5. Date of Birth
   const dobMatch = textContent.match(/\b(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})\b/);
   if (dobMatch) extractedData.date_of_birth = dobMatch[1];
 
-  // 5. Employer Name
+  // 6. Employer Name
   const empMatch = textContent.match(/(?:Employer|Company|Organization|Disbursal)\s*[:\-]?\s*([A-Za-z0-9\s\.,&]{3,40})/i);
   if (empMatch) extractedData.employer_name = empMatch[1].trim();
 
-  // 6. Amounts (Salary / Credits)
+  // 7. Amounts (Salary / Credits)
   const salaryMatch = textContent.match(/(?:Net\s+Pay|Net\s+Salary|Gross\s+Salary|Salary\s+Credit)\s*[:\-]?\s*(?:₹|Rs\.?)?\s*([\d,]{4,10})/i);
   if (salaryMatch) {
     const num = Number(salaryMatch[1].replace(/,/g, ''));
@@ -351,7 +367,7 @@ const processDocumentInternal = async (documentId) => {
             form,
             {
               headers: { ...form.getHeaders() },
-              timeout: 4000,
+              timeout: 45000,
               maxContentLength: 50 * 1024 * 1024,
             }
           );
