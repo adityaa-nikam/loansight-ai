@@ -59,7 +59,9 @@ export default function Login() {
     },
     validationRules,
     onSubmit: async (data) => {
-      const authUser = await login(data.email, data.password);
+      const cleanEmail = (data.email || '').trim();
+      const cleanPassword = (data.password || '').trim();
+      const authUser = await login(cleanEmail, cleanPassword);
       if (activePortal === 'applicant' && authUser.role === 'officer') {
         throw new Error('Invalid credentials. Bank officers must sign in via the Officer Workspace.');
       }

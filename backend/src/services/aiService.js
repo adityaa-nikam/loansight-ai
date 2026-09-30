@@ -193,9 +193,17 @@ const processDocumentInternal = async (documentId) => {
       return;
     }
 
-    const filePath = document.path;
+    let filePath = document.path;
     let fileHash = null;
-    const fileExists = filePath && fs.existsSync(filePath);
+    let fileExists = filePath && fs.existsSync(filePath);
+
+    if (!fileExists && filePath) {
+      const fallbackPath = path.join(__dirname, '../../uploads', path.basename(filePath));
+      if (fs.existsSync(fallbackPath)) {
+        filePath = fallbackPath;
+        fileExists = true;
+      }
+    }
 
     if (fileExists) {
       try {
@@ -263,14 +271,14 @@ const processDocumentInternal = async (documentId) => {
             contentType: document.mimetype,
           });
 
-          console.log(`[AI] Extracting identity doc via PyMuPDF: ${document.originalName} (${documentId})`);
+          console.log(`[AI] Extracting identity doc via OCR/PyMuPDF: ${document.originalName} (${documentId})`);
 
           const response = await axios.post(
             `${AI_SERVICE_URL}/api/extract-text?document_type=${document.documentType}`,
             form,
             {
               headers: { ...form.getHeaders() },
-              timeout: 4000,
+              timeout: 45000,
               maxContentLength: 50 * 1024 * 1024,
             }
           );
@@ -279,7 +287,7 @@ const processDocumentInternal = async (documentId) => {
           if (!result.error) {
             extractedData = result.extracted_data || {};
             rawText = result.text || null;
-            engine = result.ocr_engine || 'pymupdf';
+            engine = result.ocr_engine || 'rapidocr';
           }
         } catch (callErr) {
           console.warn(`[AI] Identity extraction service returned ${callErr.message}. Using intelligent fallback.`);

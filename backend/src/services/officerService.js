@@ -112,27 +112,16 @@ const getApplicationById = async (id) => {
         : (result.applicantName || 'Rohit Sharma');
       const declaredIncome = Number(result.declaredMonthlyIncome) || 85000;
 
-      let extractedData = d.aiProcessing?.extractedData || {};
-
-      if (!d.aiProcessing || d.aiProcessing.status === 'processing') {
-
+      if (!d.aiProcessing) {
         d.aiProcessing = {
-          ...(d.aiProcessing || {}),
-          status: 'completed',
-          confidence: d.aiProcessing?.confidence || 0.95,
-          extractedData,
-          predictedType: d.aiProcessing?.predictedType || docType.toUpperCase(),
+          status: 'processing',
+          confidence: 0.95,
+          extractedData: {},
+          predictedType: docType.toUpperCase(),
           promptVersion: 'v4',
           documentTypeMatch: true,
-          processedAt: d.aiProcessing?.processedAt || new Date(),
+          processedAt: new Date(),
         };
-
-        if (d._id && mongoose.connection.readyState === 1) {
-          Document.findByIdAndUpdate(d._id, {
-            aiProcessing: d.aiProcessing,
-            'ocr.status': 'completed',
-          }).catch(() => {});
-        }
       }
       return d;
     });

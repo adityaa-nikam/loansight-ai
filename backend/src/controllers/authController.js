@@ -51,24 +51,30 @@ const register = async (req, res, next) => {
 
 const login = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
+    let { email, password } = req.body;
 
     if (!email || !password) {
       throw ApiError.badRequest('Please provide email and password');
     }
 
+    const cleanEmail = String(email).trim().toLowerCase();
+    const cleanPassword = String(password).trim();
+
     let user = null;
 
     if (mongoose.connection.readyState === 1) {
       try {
-        user = await User.findOne({ email }).select('+passwordHash');
+        user = await User.findOne({ email: cleanEmail }).select('+passwordHash');
       } catch (dbErr) {
         console.warn('[Auth] DB query failed, using fallback authentication:', dbErr.message);
       }
     }
 
     if (user) {
-      const isMatch = await user.matchPassword(password);
+      let isMatch = await user.matchPassword(cleanPassword);
+      if (!isMatch && cleanPassword !== password) {
+        isMatch = await user.matchPassword(password);
+      }
       if (!isMatch) {
         throw ApiError.badRequest('Invalid credentials');
       }
@@ -76,14 +82,14 @@ const login = async (req, res, next) => {
     }
 
     // Fallback authentication for dev/demo when DB is unreachable or unseeded
-    const isOfficer = email.includes('officer') || email.includes('admin') || email === 'officer@loanlens.ai';
-    const isApplicant = email.includes('rohit') || email === 'rohit.sharma@example.com' || !isOfficer;
+    const isOfficer = cleanEmail.includes('officer') || cleanEmail.includes('admin') || cleanEmail === 'officer@loanlens.ai';
+    const isApplicant = cleanEmail.includes('rohit') || cleanEmail === 'rohit.sharma@example.com' || !isOfficer;
 
     if (isOfficer || isApplicant) {
       const fallbackUser = {
         _id: isOfficer ? '65f1a2b3c4d5e6f7a8b9c0d2' : '65f1a2b3c4d5e6f7a8b9c0d1',
         name: isOfficer ? 'Bank Underwriting Officer' : 'Rohit Sharma',
-        email: email.toLowerCase(),
+        email: cleanEmail,
         role: isOfficer ? 'officer' : 'applicant',
       };
       return sendTokenResponse(fallbackUser, 200, res);

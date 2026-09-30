@@ -145,35 +145,6 @@ const getUserApplications = async (userId) => {
         if (Array.isArray(obj.documents)) {
           obj.documents = obj.documents.map((doc) => {
             const d = typeof doc.toJSON === 'function' ? doc.toJSON() : { ...doc };
-            const docType = (d.documentType || '').toLowerCase();
-            const isSalary = docType === 'salary_slip' || docType === 'payment_slip';
-
-            if (!d.aiProcessing || d.aiProcessing.status === 'processing' || !d.aiProcessing.extractedData || (isSalary && !d.aiProcessing.extractedData.gross_salary)) {
-              let extractedData = d.aiProcessing?.extractedData || {};
-              extractedData.name = extractedData.name || applicantName;
-              extractedData.employee_name = extractedData.employee_name || applicantName;
-              extractedData.account_holder = extractedData.account_holder || applicantName;
-
-              if (isSalary) {
-                extractedData.gross_salary = extractedData.gross_salary || declaredIncome;
-                extractedData.net_salary = extractedData.net_salary || declaredIncome;
-                extractedData.basic_salary = extractedData.basic_salary || Math.round(declaredIncome * 0.6);
-                extractedData.employer_name = extractedData.employer_name || 'TCS / Corporate';
-                extractedData.pan_number = extractedData.pan_number || 'ABCPS1234F';
-                extractedData.pay_period = extractedData.pay_period || 'August 2024';
-              }
-
-              d.aiProcessing = {
-                ...(d.aiProcessing || {}),
-                status: 'completed',
-                confidence: d.aiProcessing?.confidence || 0.95,
-                extractedData,
-                predictedType: d.aiProcessing?.predictedType || docType.toUpperCase(),
-                promptVersion: 'v4',
-                documentTypeMatch: true,
-                processedAt: d.aiProcessing?.processedAt || new Date(),
-              };
-            }
             return d;
           });
         }
