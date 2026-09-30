@@ -273,17 +273,46 @@ def _fallback_extract_local(doc_key: str, raw_text: str, schema_cls: Type[BaseMo
             data["total_debits"] = _clean_num(td_m.group(1))
 
         salary_credits = []
-        for line in raw_text.split("\n"):
-            if any(k in line.upper() for k in ("SALARY", "NEFT CR", "CREDIT")):
-                amt_m = re.search(r"([0-9,]+\.[0-9]{2})", line)
-                if amt_m:
+        clean_lines = [l.strip() for l in raw_text.split("\n") if l.strip()]
+        detected_employer = None
+
+        for idx, line in enumerate(clean_lines):
+            if any(k in line.upper() for k in ("SALARY", "NEFT CR", "RTGS CR", "ACH CR")):
+                # Try to extract employer from narration tokens
+                tokens = [t.strip() for t in re.split(r'[\-\/]', line) if t.strip()]
+                for t in tokens:
+                    t_upper = t.upper()
+                    if any(k in t_upper for k in ['NEFT', 'RTGS', 'ACH', 'DEC', 'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV']) and not any(k in t_upper for k in ['LTD', 'LIMITED', 'PVT', 'PRIVATE', 'TCS', 'INFOSYS', 'MAHINDRA', 'WIPRO']):
+                        continue
+                    if t_upper in ['SALARY', 'SAL', 'CREDIT', 'CR', 'DEBIT', 'DR']:
+                        continue
+                    if any(k in t_upper for k in ['LIMITED', 'LTD', 'PVT', 'PRIVATE', 'CORP', 'CORPORATION', 'SERVICES', 'HOLDINGS', 'SYSTEMS', 'TECHNOLOGIES', 'TCS', 'INFOSYS', 'WIPRO', 'MAHINDRA', 'TECH']):
+                        detected_employer = t
+                        break
+
+                amt_found = None
+                date_found = "01/06/2024"
+                if idx > 0 and re.match(r"^\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}$", clean_lines[idx - 1]):
+                    date_found = clean_lines[idx - 1]
+
+                for lookahead in range(idx, min(idx + 4, len(clean_lines))):
+                    look_line = clean_lines[lookahead]
+                    amt_m = re.search(r"\b([0-9,]+\.[0-9]{2})\b", look_line)
+                    if amt_m and _clean_num(amt_m.group(1)) > 1000:
+                        amt_found = _clean_num(amt_m.group(1))
+                        break
+
+                if amt_found:
                     salary_credits.append({
-                        "date": "01/06/2024",
-                        "description": line.strip(),
-                        "amount": _clean_num(amt_m.group(1)),
+                        "date": date_found,
+                        "description": line,
+                        "amount": amt_found,
                         "transaction_type": "CREDIT"
                     })
+
         data["salary_credits"] = salary_credits
+        if detected_employer:
+            data["employer_name"] = detected_employer
 
     elif "FORM" in key_upper or "16" in key_upper:
         emp_m = re.search(r"Employee\s*Name\s*[:\-]?\s*([A-Za-z\s]+)", raw_text, re.I)
@@ -294,9 +323,12 @@ def _fallback_extract_local(doc_key: str, raw_text: str, schema_cls: Type[BaseMo
             clean_pan = pan_m.group(1).upper()
             data["pan_employee"] = clean_pan
             data["employee_pan"] = clean_pan
-        empr_m = re.search(r"Employer\s*Name\s*[:\-]?\s*([A-Za-z0-9\s]+)", raw_text, re.I)
+        empr_m = re.search(r"Employer\s*Name\s*[:\-]?\s*([A-Za-z0-9\s\.,&]+)", raw_text, re.I)
         if empr_m:
-            data["employer_name"] = empr_m.group(1).split("\n")[0].strip()
+            clean_emp = empr_m.group(1).split("\n")[0].strip()
+            data["employer_name"] = clean_emp
+            data["employer"] = clean_emp
+            data["company_name"] = clean_emp
         tan_m = re.search(r"(?:Employer\s*TAN|TAN\s*of\s*Employer|TAN)[^\w]*([A-Z]{4}[0-9]{5}[A-Z])", raw_text, re.I)
         if tan_m:
             clean_tan = tan_m.group(1).upper()
@@ -334,6 +366,16 @@ def _fallback_extract_local(doc_key: str, raw_text: str, schema_cls: Type[BaseMo
         return data
 
 
+def _merge_with_local(res_dict: dict, doc_key: str, raw_text: str, schema_cls: Type[BaseModel]) -> dict:
+    if not res_dict:
+        return _fallback_extract_local(doc_key, raw_text, schema_cls)
+    local = _fallback_extract_local(doc_key, raw_text, schema_cls)
+    for k, v in local.items():
+        if (res_dict.get(k) is None or res_dict.get(k) == "" or res_dict.get(k) == []) and v:
+            res_dict[k] = v
+    return res_dict
+
+
 def extract_structured_data_mistral(
     document_type: str,
     raw_text: str
@@ -369,7 +411,7 @@ def extract_structured_data_mistral(
 
         # Verify extracted fields are non-empty
         if any(v for k, v in res_dict.items() if k not in ("components", "sample_transactions", "salary_credits", "emi_debits")):
-            return res_dict
+            return _merge_with_local(res_dict, doc_key, raw_text, schema_cls)
     except Exception as e:
         logger.warning(f"[Mistral Extractor] Structured invocation warning: {e}. Attempting direct/local fallback.")
 
@@ -393,7 +435,7 @@ def extract_structured_data_mistral(
             if json_match:
                 parsed = json.loads(json_match.group(0))
                 validated = schema_cls(**parsed)
-                return validated.model_dump(exclude_none=False)
+                return _merge_with_local(validated.model_dump(exclude_none=False), doc_key, raw_text, schema_cls)
     except Exception as fallback_err:
         logger.error(f"[Mistral Extractor] Fallback LLM extraction failed: {fallback_err}")
 
@@ -430,7 +472,7 @@ def extract_structured_data_mistral(
             res_dict = validated.model_dump(exclude_none=False)
             if parsed.get("employer_name"):
                 res_dict["employer_name"] = parsed["employer_name"]
-            return res_dict
+            return _merge_with_local(res_dict, doc_key, raw_text, schema_cls)
         except Exception as groq_err:
             logger.warning(f"[Groq Extractor] Fallback failed: {groq_err}")
 

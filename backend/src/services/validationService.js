@@ -296,6 +296,7 @@ const runValidation = async (applicationId) => {
           evidence: {
             'Salary Slip': employerName,
             'Bank Statement': bankDoc?.aiProcessing?.extractedData?.employer_name || employerName,
+            ...(f16Doc?.aiProcessing?.extractedData?.employer_name ? { 'Form 16': f16Doc.aiProcessing.extractedData.employer_name } : {}),
           }
         }
       ];

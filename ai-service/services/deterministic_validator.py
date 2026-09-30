@@ -326,14 +326,13 @@ def run_deterministic_validation(
             sourceB=aadhaar_src_b,
         ))
 
-    # -------------------------------------------------------------------------
-    # 4. Employment Checks: Employer Name Consistency
-    # -------------------------------------------------------------------------
     employers: List[Tuple[str, str]] = []
-    if salary_slip and salary_slip.get("employer"):
-        employers.append(("Salary Slip", salary_slip["employer"]))
+    if salary_slip and (salary_slip.get("employer") or salary_slip.get("employer_name")):
+        employers.append(("Salary Slip", salary_slip.get("employer") or salary_slip.get("employer_name")))
     if form16 and form16.get("employer_name"):
         employers.append(("Form 16", form16["employer_name"]))
+    if bank_stmt and bank_stmt.get("employer_name"):
+        employers.append(("Bank Statement", bank_stmt["employer_name"]))
 
     if len(employers) >= 2:
         emp_evidence = {src: val for src, val in employers}

@@ -20,7 +20,7 @@ const validationService = require('./validationService');
  */
 
 const AI_SERVICE_URL = config.aiServiceUrl || 'http://localhost:8000';
-const PROMPT_VERSION = 'v4'; // Bump to invalidate caches
+const PROMPT_VERSION = 'v5'; // Bump to invalidate caches
 const MAX_RETRIES = 3;
 
 // Map frontend document types to AI expected types
@@ -51,7 +51,7 @@ const computeFileHash = (filePath) => {
 /**
  * Check if we have a cached result for the same file hash + prompt version.
  */
-const findCachedResult = async (fileHash) => {
+const findCachedResult = async (fileHash, docType) => {
   if (!fileHash) return null;
   const cached = await Document.findOne({
     'aiProcessing.fileHash': fileHash,
@@ -61,6 +61,9 @@ const findCachedResult = async (fileHash) => {
   }).select('aiProcessing');
 
   if (cached?.aiProcessing?.extractedData && Object.keys(cached.aiProcessing.extractedData).length > 0) {
+    if (docType === 'bank_statement' && !cached.aiProcessing.extractedData.account_holder) {
+      return null;
+    }
     return cached.aiProcessing;
   }
   return null;
@@ -162,8 +165,16 @@ function extractTextFromFileBuffer(fileBuffer, mimetype, docType) {
   if (dobMatch) extractedData.date_of_birth = dobMatch[1];
 
   // 6. Employer Name
-  const empMatch = textContent.match(/(?:Employer|Company|Organization|Disbursal)\s*[:\-]?\s*([A-Za-z0-9\s\.,&]{3,40})/i);
+  const empMatch = textContent.match(/(?:Employer(?:\s+Name)?|Company(?:\s+Name)?|Organization|Disbursal)\s*[:\-]?\s*([A-Za-z0-9\s\.,&]{3,40})/i);
   if (empMatch) extractedData.employer_name = empMatch[1].trim();
+
+  // 6b. Bank Statement narration-based employer detection
+  if (!extractedData.employer_name) {
+    const narrationEmpMatch = textContent.match(/(?:NEFT\s*CR|RTGS\s*CR|ACH\s*CR|SALARY)[\s\-\/]+([A-Za-z0-9\s\.,&]*?\b(?:LIMITED|LTD|PVT|PRIVATE|CORP|CORPORATION|SERVICES|HOLDINGS|SYSTEMS|TECHNOLOGIES|TCS|INFOSYS|WIPRO|MAHINDRA|TECH)\b[A-Za-z0-9\s\.,&]*?)(?=[\s\-\/]|\bSALARY\b|$)/i);
+    if (narrationEmpMatch) {
+      extractedData.employer_name = narrationEmpMatch[1].trim();
+    }
+  }
 
   // 7. Amounts (Salary / Credits)
   const salaryMatch = textContent.match(/(?:Net\s+Pay|Net\s+Salary|Gross\s+Salary|Salary\s+Credit)\s*[:\-]?\s*(?:₹|Rs\.?)?\s*([\d,]{4,10})/i);
@@ -201,12 +212,17 @@ const processDocumentInternal = async (documentId) => {
       document.aiProcessing.extractedData &&
       Object.keys(document.aiProcessing.extractedData).length > 0
     ) {
-      console.log(
-        `[AI] ⏭️  Skipping ${document.originalName} (${documentId}) — already processed`
-      );
-      // Still trigger validation in case this was the last pending doc
-      await triggerDeferredValidation(document.application);
-      return;
+      // If bank statement is missing account_holder, force re-processing
+      if (document.documentType === 'bank_statement' && !document.aiProcessing.extractedData.account_holder) {
+        console.log(`[AI] Re-processing bank statement ${document.originalName} to extract missing account_holder.`);
+      } else {
+        console.log(
+          `[AI] ⏭️  Skipping ${document.originalName} (${documentId}) — already processed`
+        );
+        // Still trigger validation in case this was the last pending doc
+        await triggerDeferredValidation(document.application);
+        return;
+      }
     }
 
     let filePath = document.path;
@@ -233,7 +249,7 @@ const processDocumentInternal = async (documentId) => {
 
     // ── CACHE CHECK 2: Another document with same file hash was already processed ──
     if (fileHash) {
-      const cached = await findCachedResult(fileHash);
+      const cached = await findCachedResult(fileHash, document.documentType);
       if (cached) {
         console.log(
           `[AI] ⏭️  Cache hit for ${document.originalName} (hash=${fileHash.substring(0, 12)}…) — reusing previous result`
