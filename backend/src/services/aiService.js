@@ -310,7 +310,7 @@ const processDocumentInternal = async (documentId) => {
             form,
             {
               headers: { ...form.getHeaders() },
-              timeout: 45000,
+              timeout: 75000,
               maxContentLength: 50 * 1024 * 1024,
             }
           );
@@ -383,7 +383,7 @@ const processDocumentInternal = async (documentId) => {
             form,
             {
               headers: { ...form.getHeaders() },
-              timeout: 45000,
+              timeout: 75000,
               maxContentLength: 50 * 1024 * 1024,
             }
           );

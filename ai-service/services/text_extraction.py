@@ -181,6 +181,13 @@ def compact_bank_statement(text: str, tables: list) -> str:
     return compact_text
 
 
+def _preprocess_image_for_ocr(file_bytes: bytes):
+    from PIL import Image, ImageOps
+    import io
+    img = Image.open(io.BytesIO(file_bytes))
+    return ImageOps.autocontrast(img.convert("L"))
+
+
 def extract_text_from_image(file_bytes: bytes) -> dict:
     """Extract text from image files using RapidOCR (with Tesseract fallback)."""
     # 1. Try RapidOCR first (CPU ONNX, high precision, handles skewed / low-res ID cards)
@@ -228,25 +235,64 @@ def extract_text_from_image(file_bytes: bytes) -> dict:
             if len(text_raw) > len(text):
                 text = text_raw
 
-        has_text = len(text) > 5
-        return {
-            "text": text,
-            "tables": [],
-            "page_count": 1,
-            "has_text": has_text,
-            "ocr_engine": "tesseract" if has_text else "none",
-            "needs_vision": False,
-        }
+        if len(text) > 10:
+            return {
+                "text": text,
+                "tables": [],
+                "page_count": 1,
+                "has_text": True,
+                "ocr_engine": "tesseract",
+                "needs_vision": False,
+            }
     except Exception as e:
-        logger.warning(f"Image text extraction error: {e}")
-        return {
-            "text": "",
-            "tables": [],
-            "page_count": 1,
-            "has_text": False,
-            "ocr_engine": "failed",
-            "needs_vision": False,
-        }
+        logger.warning(f"Local OCR extraction error: {e}")
+
+    # 3. Cloud Vision Fallback (Pixtral-12b via Mistral): Zero-dependency cloud OCR for Render / headless Linux
+    try:
+        import base64
+        import os
+        from langchain_mistralai import ChatMistralAI
+        from langchain_core.messages import HumanMessage
+        from config import get_settings
+
+        settings = get_settings()
+        api_key = settings.mistral_api_key or os.getenv("MISTRAL_API_KEY", "")
+        if api_key:
+            b64_img = base64.b64encode(file_bytes).decode("utf-8")
+            mime = "image/png" if file_bytes.startswith(b"\x89PNG") else "image/jpeg"
+            llm = ChatMistralAI(model="pixtral-12b-2409", mistral_api_key=api_key, temperature=0)
+            msg = HumanMessage(
+                content=[
+                    {
+                        "type": "text",
+                        "text": "Extract all text on this identity card verbatim. Include Name, Father's Name, Date of Birth, Gender, Address, and PAN or Aadhaar number.",
+                    },
+                    {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{b64_img}"}},
+                ]
+            )
+            res = llm.invoke([msg])
+            content = res.content if hasattr(res, "content") else str(res)
+            if content and len(content.strip()) > 10:
+                logger.info(f"[Vision OCR] Pixtral successfully transcribed {len(content)} chars from image.")
+                return {
+                    "text": content.strip(),
+                    "tables": [],
+                    "page_count": 1,
+                    "has_text": True,
+                    "ocr_engine": "pixtral-vision",
+                    "needs_vision": True,
+                }
+    except Exception as vision_err:
+        logger.warning(f"[Vision OCR] Pixtral transcription error: {vision_err}")
+
+    return {
+        "text": "",
+        "tables": [],
+        "page_count": 1,
+        "has_text": False,
+        "ocr_engine": "failed",
+        "needs_vision": False,
+    }
 
 
 def extract_text(
