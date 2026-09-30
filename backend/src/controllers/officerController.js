@@ -185,16 +185,8 @@ const getDocumentAnalysis = async (req, res, next) => {
     const docType = (document.documentType || '').toLowerCase();
     const isSalary = docType === 'salary_slip' || docType === 'payment_slip';
 
-    if (!aiProcessing.extractedData || aiProcessing.status === 'processing' || (isSalary && !aiProcessing.extractedData.gross_salary)) {
+    if (!aiProcessing.extractedData || aiProcessing.status === 'processing') {
       const extractedData = aiProcessing.extractedData || {};
-      if (isSalary) {
-        extractedData.gross_salary = extractedData.gross_salary || 85000;
-        extractedData.net_salary = extractedData.net_salary || 85000;
-        extractedData.basic_salary = extractedData.basic_salary || 50000;
-        extractedData.employer_name = extractedData.employer_name || 'TCS / Corporate';
-        extractedData.pan_number = extractedData.pan_number || 'ABCPS1234F';
-        extractedData.pay_period = extractedData.pay_period || 'August 2024';
-      }
 
       aiProcessing = {
         ...aiProcessing,

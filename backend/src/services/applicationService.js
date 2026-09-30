@@ -289,58 +289,32 @@ const uploadDocument = async (applicationId, userId, fileData, documentType, man
   const isSalary = canonicalDocType === 'salary_slip' || canonicalDocType === 'payment_slip';
   const isBank = canonicalDocType === 'bank_statement';
   const isForm16 = canonicalDocType === 'form16';
-
   const applicantName = (application.applicant && typeof application.applicant === 'object' && application.applicant.name)
     ? application.applicant.name
-    : 'Rahul Sharma';
-  const applicantIncome = Number(application.declaredMonthlyIncome) || 85000;
+    : null;
+  const applicantIncome = Number(application.declaredMonthlyIncome) || null;
 
   const defaultText = manualText && manualText.trim()
     ? `${canonicalDocType.toUpperCase()}: ${manualText.trim()}`
-    : `${canonicalDocType.toUpperCase()} document processed and verified for ${applicantName}`;
+    : `${canonicalDocType.toUpperCase()} document uploaded for ${applicantName || 'Applicant'}`;
 
   docData.ocr = {
     text: defaultText,
-    engine: manualText ? 'manual_input' : 'ocr_Discrepancy_engine',
+    engine: manualText ? 'manual_input' : 'ocr_engine',
     status: 'completed',
     processedAt: new Date(),
   };
 
-  const extractedData = {
-    name: applicantName,
-    employee_name: applicantName,
-    account_holder: applicantName,
-  };
-
-  if (isPan) {
-    extractedData.pan_number = manualText?.trim() || application.applicant?.pan || 'ABCPS1234F';
-    extractedData.date_of_birth = '15/01/1988';
-  } else if (isAadhaar) {
-    extractedData.aadhaar_number = manualText?.trim() || application.applicant?.aadhaar || 'XXXX-XXXX-9012';
-    extractedData.date_of_birth = '15/01/1988';
-  } else if (isSalary) {
-    extractedData.gross_salary = applicantIncome;
-    extractedData.net_salary = applicantIncome;
-    extractedData.basic_salary = Math.round(applicantIncome * 0.6);
-    extractedData.pan_number = application.applicant?.pan || 'ABCPS1234F';
-    extractedData.employer_name = 'TCS / Corporate';
-    extractedData.pay_period = 'August 2024';
-  } else if (isBank) {
-    extractedData.salary_credits = [{ amount: applicantIncome, date: '01/08/2024' }];
-    extractedData.pan_number = application.applicant?.pan || 'ABCPS1234F';
-    extractedData.employer_name = 'TCS Salary Disbursal';
-    extractedData.average_balance = Math.round(applicantIncome * 0.5);
-  } else if (isForm16) {
-    extractedData.employer_name = 'TCS / Corporate';
-    extractedData.gross_total_income = applicantIncome * 12;
-    extractedData.pan_number = application.applicant?.pan || 'ABCPS1234F';
-    extractedData.assessment_year = '2024-25';
+  const extractedData = {};
+  if (manualText && manualText.trim()) {
+    if (isPan) extractedData.pan_number = manualText.trim();
+    if (isAadhaar) extractedData.aadhaar_number = manualText.trim();
   }
 
   docData.aiProcessing = {
-    status: 'completed',
+    status: 'processing',
     predictedType: canonicalPredictedType,
-    confidence: 0.98,
+    confidence: 0.95,
     extractedData,
     processedAt: new Date(),
     documentTypeMatch: true,

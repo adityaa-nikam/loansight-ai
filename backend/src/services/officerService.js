@@ -114,32 +114,7 @@ const getApplicationById = async (id) => {
 
       let extractedData = d.aiProcessing?.extractedData || {};
 
-      if (!d.aiProcessing || d.aiProcessing.status === 'processing' || !d.aiProcessing.extractedData || (isSalary && !d.aiProcessing.extractedData.gross_salary)) {
-
-        if (isSalary) {
-          extractedData.gross_salary = extractedData.gross_salary || declaredIncome;
-          extractedData.net_salary = extractedData.net_salary || declaredIncome;
-          extractedData.basic_salary = extractedData.basic_salary || Math.round(declaredIncome * 0.6);
-          extractedData.employer_name = extractedData.employer_name || 'TCS / Corporate';
-          extractedData.pan_number = extractedData.pan_number || 'ABCPS1234F';
-          extractedData.pay_period = extractedData.pay_period || 'August 2024';
-        } else if (isBank) {
-          extractedData.salary_credits = extractedData.salary_credits || [{ amount: declaredIncome, date: '01/08/2024' }];
-          extractedData.employer_name = extractedData.employer_name || 'TCS Salary Disbursal';
-          extractedData.average_balance = extractedData.average_balance || Math.round(declaredIncome * 0.5);
-          extractedData.pan_number = extractedData.pan_number || 'ABCPS1234F';
-        } else if (isPan) {
-          extractedData.pan_number = extractedData.pan_number || 'ABCPS1234F';
-          extractedData.date_of_birth = extractedData.date_of_birth || '15/01/1988';
-        } else if (isAadhaar) {
-          extractedData.aadhaar_number = extractedData.aadhaar_number || 'XXXX-XXXX-9012';
-          extractedData.date_of_birth = extractedData.date_of_birth || '15/01/1988';
-        } else if (isForm16) {
-          extractedData.employer_name = extractedData.employer_name || 'TCS / Corporate';
-          extractedData.gross_total_income = extractedData.gross_total_income || declaredIncome * 12;
-          extractedData.pan_number = extractedData.pan_number || 'ABCPS1234F';
-          extractedData.assessment_year = extractedData.assessment_year || '2024-25';
-        }
+      if (!d.aiProcessing || d.aiProcessing.status === 'processing') {
 
         d.aiProcessing = {
           ...(d.aiProcessing || {}),

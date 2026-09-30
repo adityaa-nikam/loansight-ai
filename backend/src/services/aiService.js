@@ -416,12 +416,15 @@ const processDocumentInternal = async (documentId) => {
         document.aiProcessing.predictedType = aiType;
         document.aiProcessing.processingError = null;
         document.aiProcessing.confidence = 0.95;
-        document.aiProcessing.extractedData = document.aiProcessing.extractedData || {
-          employee_name: 'Rahul Sharma',
-          employer_name: 'TCS / Corporate',
-          pan_number: 'ABCPS1234F',
-          status: 'verified',
-        };
+        let fallbackExtracted = document.aiProcessing?.extractedData || {};
+        if (filePath && fs.existsSync(filePath)) {
+          try {
+            const buf = fs.readFileSync(filePath);
+            const parsed = extractTextFromFileBuffer(buf, document.mimetype, docType);
+            fallbackExtracted = parsed.data || {};
+          } catch (e) {}
+        }
+        document.aiProcessing.extractedData = fallbackExtracted;
         await document.save();
         await triggerDeferredValidation(document.application);
       } catch (saveErr) {

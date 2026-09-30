@@ -1004,7 +1004,15 @@ const VerificationTab = ({ applicationId, app, documents }) => {
     try {
       setLoading(true);
       const res = await officerService.getApplicationValidation(applicationId);
-      setData(res.data || res);
+      const val = res.data || res;
+      setData(val);
+
+      const count = (documents || app?.documents || []).length;
+      if (count > 0 && (!val || !val.checks || val.checks.length === 0 || val.status === 'PENDING_DOCS')) {
+        console.log('[VerificationTab] Documents present, running cross-document verification...');
+        const autoRes = await officerService.triggerVerification(applicationId);
+        setData(autoRes.data || autoRes);
+      }
     } catch (err) {
       console.error('Failed to fetch validation:', err);
     } finally {
@@ -1038,7 +1046,7 @@ const VerificationTab = ({ applicationId, app, documents }) => {
 
   const docsList = documents || app?.documents || [];
 
-  if (!data || data.status === 'PENDING_DOCS' || docsList.length === 0) {
+  if (docsList.length === 0) {
     return (
       <div className="bg-white p-10 rounded-2xl shadow-soft border border-cream-300 text-center text-charcoal-500 max-w-xl mx-auto my-8">
         <div className="w-14 h-14 rounded-full bg-cream-100 flex items-center justify-center mx-auto mb-4">
@@ -1048,6 +1056,37 @@ const VerificationTab = ({ applicationId, app, documents }) => {
         <p className="text-sm text-charcoal-600 mb-6 leading-relaxed">
           {t('no_docs_uploaded_desc', 'The applicant has not uploaded any identity or financial documents yet. Cross-document AI extraction and risk verification will run automatically once documents are submitted.')}
         </p>
+      </div>
+    );
+  }
+
+  if (!data || data.status === 'PENDING_DOCS' || !data.checks || data.checks.length === 0) {
+    return (
+      <div className="bg-white p-8 rounded-2xl shadow-soft border border-cream-300 text-center text-charcoal-600 max-w-xl mx-auto my-8 space-y-4">
+        <div className="w-14 h-14 rounded-full bg-teal-50 border border-teal-200 flex items-center justify-center mx-auto text-teal-600">
+          <ShieldCheck className="w-7 h-7" />
+        </div>
+        <h3 className="text-lg font-bold text-charcoal-900">Verification Pending for Uploaded Documents</h3>
+        <p className="text-sm text-charcoal-600">
+          {docsList.length} document(s) uploaded. Click below to run AI cross-document verification.
+        </p>
+        <button
+          onClick={handleRunVerification}
+          disabled={verifying}
+          className="px-6 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl shadow-md transition-all flex items-center gap-2 mx-auto disabled:opacity-50"
+        >
+          {verifying ? (
+            <>
+              <RefreshCw className="w-4 h-4 animate-spin" />
+              Running AI Verification...
+            </>
+          ) : (
+            <>
+              <ShieldCheck className="w-4 h-4" />
+              Run Cross-Document Verification ({docsList.length} docs)
+            </>
+          )}
+        </button>
       </div>
     );
   }
