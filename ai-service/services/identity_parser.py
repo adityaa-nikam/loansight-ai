@@ -78,10 +78,22 @@ def _find_pan_number(text: str) -> Optional[str]:
 
 
 def _find_aadhaar_number(text: str) -> Optional[str]:
+    # 1. Masked Aadhaar (e.g. XXXX-XXXX-9012 or XXXX XXXX 9012)
+    masked = re.search(r"\b([Xx]{4}[\s-]?[Xx]{4}[\s-]?\d{4})\b", text)
+    if masked:
+        return re.sub(r"[\s]", "-", masked.group(1).upper())
+
+    # 2. Standard 12-digit format with spaces/hyphens
     for match in AADHAAR_PATTERN.finditer(text):
         normalized = _normalize_aadhaar(match.group(1))
         if len(normalized) == 12:
             return normalized
+
+    # 3. Across newlines (e.g. 7693 5093 \n 3092)
+    digits_match = re.search(r"\b(\d{4})[\s\n]+(\d{4})[\s\n]+(\d{4})\b", text)
+    if digits_match:
+        return f"{digits_match.group(1)}{digits_match.group(2)}{digits_match.group(3)}"
+
     return None
 
 
@@ -119,6 +131,16 @@ def _is_noise_or_label_pan(line: str) -> bool:
 
     # Pure digits/symbols
     if not re.search(r"[A-Za-z]", cleaned):
+        return True
+
+    # Sample/Demo watermarks
+    if any(w in upper for w in ["SAMPLE", "DEMO", "NOT AN ORIGINAL", "DEMONSTRATION"]):
+        return True
+
+    # Gibberish lines without vowels or with excessive consonant clusters
+    if not re.search(r"[aeiouyAEIOUY]", cleaned):
+        return True
+    if re.search(r"[BCDFGHJKLMNPQRSTVWXZbcdfghjklmnpqrstvwxz]{5,}", cleaned):
         return True
 
     return False

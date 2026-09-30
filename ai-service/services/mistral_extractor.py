@@ -74,7 +74,7 @@ Rules:
 Read the raw text extracted from a salary slip (it may contain minor OCR noise/typos) and extract clean, structured data.
 
 Rules:
-- Extract employee details, employer, salary month, basic salary, HRA, gross salary, PF, TDS, total deductions, and net salary.
+- Extract employee_name, employer (or employer_name, usually company name at the top or header of the slip), salary_month, basic_salary, gross_salary, total_deductions, pan_number, and net_salary (also called Net Payable / Take Home).
 - Strip currency symbols (₹, Rs.) and commas from amounts.
 - Set missing fields to null.
 - Never invent data not present in the document.
@@ -223,16 +223,17 @@ def _fallback_extract_local(doc_key: str, raw_text: str, schema_cls: Type[BaseMo
         pan_m = re.search(r"\b([A-Z]{5}[0-9]{4}[A-Z])\b", raw_text)
         if pan_m:
             data["pan_number"] = pan_m.group(1).upper()
-        empr_m = re.search(r"^([A-Z0-9\s\.,]+(?:LIMITED|LTD|INC|CORP|PVT|SERVICES|TECH))", raw_text, re.M | re.I)
+        empr_m = re.search(r"([A-Za-z0-9\s\.,]+(?:LIMITED|LTD|PVT|PRIVATE|CORP|CORPORATION|SERVICES))", raw_text, re.I)
         if empr_m:
             data["employer_name"] = empr_m.group(1).split("\n")[0].strip()
-        basic_m = re.search(r"Basic\s*(?:Salary)?\s*[\r\n\s]*[₹Rs\.]*\s*([0-9,]+(?:\.[0-9]+)?)", raw_text, re.I)
+            data["employer"] = data["employer_name"]
+        basic_m = re.search(r"Basic\s*(?:Salary)?[^\d₹Rs]*[₹Rs\.]*\s*([0-9,]+(?:\.[0-9]+)?)", raw_text, re.I)
         if basic_m:
             data["basic_salary"] = _clean_num(basic_m.group(1))
-        gross_m = re.search(r"(?:TOTAL\s*)?GROSS\s*SALARY\s*[\r\n\s]*[₹Rs\.]*\s*([0-9,]+(?:\.[0-9]+)?)", raw_text, re.I)
+        gross_m = re.search(r"(?:TOTAL\s*)?GROSS\s*SALARY[^\d₹Rs]*[₹Rs\.]*\s*([0-9,]+(?:\.[0-9]+)?)", raw_text, re.I)
         if gross_m:
             data["gross_salary"] = _clean_num(gross_m.group(1))
-        net_m = re.search(r"NET\s*(?:PAYABLE|TAKE HOME|PAY)\s*[\r\n\s]*[₹Rs\.]*\s*([0-9,]+(?:\.[0-9]+)?)", raw_text, re.I)
+        net_m = re.search(r"(?:NET\s*(?:PAYABLE|TAKE\s*HOME|SALARY|PAY)[^\d₹Rs]*)[₹Rs\.]*\s*([0-9,]+(?:\.[0-9]+)?)", raw_text, re.I)
         if net_m:
             data["net_salary"] = _clean_num(net_m.group(1))
         ded_m = re.search(r"TOTAL\s*DEDUCTIONS\s*[\r\n\s]*[₹Rs\.]*\s*([0-9,]+(?:\.[0-9]+)?)", raw_text, re.I)
@@ -240,9 +241,11 @@ def _fallback_extract_local(doc_key: str, raw_text: str, schema_cls: Type[BaseMo
             data["total_deductions"] = _clean_num(ded_m.group(1))
 
     elif "BANK" in key_upper:
-        holder_m = re.search(r"Account\s*Holder\s*[:\-]?\s*([A-Za-z\s]+)", raw_text, re.I)
+        holder_m = re.search(r"Account\s*Holder[^\w]*([A-Za-z\s]+)", raw_text, re.I)
         if holder_m:
-            data["account_holder_name"] = holder_m.group(1).split("\n")[0].strip()
+            clean_holder = holder_m.group(1).split("\n")[0].strip()
+            data["account_holder"] = clean_holder
+            data["account_holder_name"] = clean_holder
         acc_m = re.search(r"Account\s*Number\s*[:\-]?\s*([0-9]+)", raw_text, re.I)
         if acc_m:
             data["account_number"] = acc_m.group(1).strip()
@@ -365,7 +368,44 @@ def extract_structured_data_mistral(
     except Exception as fallback_err:
         logger.error(f"[Mistral Extractor] Fallback LLM extraction failed: {fallback_err}")
 
-    # Deterministic local regex fallback
+    # Step 2b: Groq Structured LLM Extraction
+    groq_api_key = os.getenv("GROQ_API_KEY", "")
+    if groq_api_key:
+        try:
+            from groq import Groq
+            import json
+            import re
+            client = Groq(api_key=groq_api_key)
+            fields = list(schema_cls.model_fields.keys())
+            groq_prompt = (
+                f"You are an expert financial document parser. Extract these fields as a pure JSON object:\n"
+                f"Requested fields: {', '.join(fields)}\n\n"
+                f"Rules:\n"
+                f"- For numeric amounts, return plain numbers (e.g. 85000.0, not '₹85,000').\n"
+                f"- For employee_name, employer (company name), pan_number, gross_salary, net_salary, extract exact values from text.\n"
+                f"- Set missing fields to null.\n\n"
+                f"Document Text:\n{raw_text[:6000]}"
+            )
+            groq_res = client.chat.completions.create(
+                messages=[{"role": "user", "content": groq_prompt}],
+                model=os.getenv("GROQ_MODEL", "qwen/qwen3.8-27b"),
+                response_format={"type": "json_object"}
+            )
+            raw_json = groq_res.choices[0].message.content
+            parsed = json.loads(raw_json)
+            if parsed.get("employer") and not parsed.get("employer_name"):
+                parsed["employer_name"] = parsed["employer"]
+            elif parsed.get("employer_name") and not parsed.get("employer"):
+                parsed["employer"] = parsed["employer_name"]
+            validated = schema_cls(**parsed)
+            res_dict = validated.model_dump(exclude_none=False)
+            if parsed.get("employer_name"):
+                res_dict["employer_name"] = parsed["employer_name"]
+            return res_dict
+        except Exception as groq_err:
+            logger.warning(f"[Groq Extractor] Fallback failed: {groq_err}")
+
+    # Step 2c: Deterministic local regex fallback
     logger.info(f"[Mistral Extractor] Running deterministic local regex extraction for '{document_type}'.")
     return _fallback_extract_local(doc_key, raw_text, schema_cls)
 

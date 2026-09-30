@@ -350,8 +350,8 @@ const StatsRow = ({ checks, documentsCount = 0, t }) => {
 
 /* ───────── Extracted Data Overview Matrix Table ───────── */
 
-const ExtractedDataTable = ({ checks, documents, app, t }) => {
-  if (!checks || checks.length === 0) return null;
+const ExtractedDataTable = ({ checks = [], documents = [], app, t }) => {
+  if ((!checks || checks.length === 0) && (!documents || documents.length === 0)) return null;
 
   const panDocObj = documents?.find(d => {
     const t = (d.documentType || d.aiProcessing?.predictedType || '').toLowerCase();
@@ -1060,42 +1060,12 @@ const VerificationTab = ({ applicationId, app, documents }) => {
     );
   }
 
-  if (!data || data.status === 'PENDING_DOCS' || !data.checks || data.checks.length === 0) {
-    return (
-      <div className="bg-white p-8 rounded-2xl shadow-soft border border-cream-300 text-center text-charcoal-600 max-w-xl mx-auto my-8 space-y-4">
-        <div className="w-14 h-14 rounded-full bg-teal-50 border border-teal-200 flex items-center justify-center mx-auto text-teal-600">
-          <ShieldCheck className="w-7 h-7" />
-        </div>
-        <h3 className="text-lg font-bold text-charcoal-900">Verification Pending for Uploaded Documents</h3>
-        <p className="text-sm text-charcoal-600">
-          {docsList.length} document(s) uploaded. Click below to run AI cross-document verification.
-        </p>
-        <button
-          onClick={handleRunVerification}
-          disabled={verifying}
-          className="px-6 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl shadow-md transition-all flex items-center gap-2 mx-auto disabled:opacity-50"
-        >
-          {verifying ? (
-            <>
-              <RefreshCw className="w-4 h-4 animate-spin" />
-              Running AI Verification...
-            </>
-          ) : (
-            <>
-              <ShieldCheck className="w-4 h-4" />
-              Run Cross-Document Verification ({docsList.length} docs)
-            </>
-          )}
-        </button>
-      </div>
-    );
-  }
+  const safeData = data || { status: 'CONSISTENT', checks: [] };
+  const isStale = safeData.status === 'STALE';
+  const isConsistent = safeData.status === 'CONSISTENT' || safeData.status === 'VERIFIED';
+  const isReviewRequired = safeData.status === 'REVIEW_REQUIRED';
 
-  const isStale = data.status === 'STALE';
-  const isConsistent = data.status === 'CONSISTENT' || data.status === 'VERIFIED';
-  const isReviewRequired = data.status === 'REVIEW_REQUIRED';
-
-  const checks = data.checks || [];
+  const checks = safeData.checks || [];
   const flaggedCount = checks.filter((c) => c.status === 'FLAGGED').length;
   const warningCount = checks.filter((c) => c.status === 'WARNING').length;
   const banner = getBannerState(flaggedCount, warningCount, checks.length, t);

@@ -60,7 +60,10 @@ const findCachedResult = async (fileHash) => {
     'aiProcessing.extractedData': { $ne: null },
   }).select('aiProcessing');
 
-  return cached?.aiProcessing || null;
+  if (cached?.aiProcessing?.extractedData && Object.keys(cached.aiProcessing.extractedData).length > 0) {
+    return cached.aiProcessing;
+  }
+  return null;
 };
 
 /**
@@ -179,7 +182,8 @@ const processDocumentInternal = async (documentId) => {
     if (
       document.aiProcessing &&
       document.aiProcessing.status === 'completed' &&
-      document.aiProcessing.extractedData
+      document.aiProcessing.extractedData &&
+      Object.keys(document.aiProcessing.extractedData).length > 0
     ) {
       console.log(
         `[AI] ⏭️  Skipping ${document.originalName} (${documentId}) — already processed`

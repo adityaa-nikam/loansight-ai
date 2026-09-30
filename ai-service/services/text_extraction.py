@@ -99,7 +99,27 @@ def extract_text_from_pdf(
 
 
 def _ocr_pdf_pages(doc: fitz.Document, max_pages: int = 5) -> str:
-    """Render PDF pages to pixmaps and run Tesseract OCR."""
+    """Render PDF pages to pixmaps and run RapidOCR / Tesseract OCR."""
+    ocr_parts = []
+    pages_to_ocr = min(len(doc), max_pages)
+
+    # 1. Try RapidOCR first (native CPU ONNX model, robust, no external binaries required)
+    try:
+        from rapidocr_onnxruntime import RapidOCR
+        rapid_engine = RapidOCR()
+        for page_idx in range(pages_to_ocr):
+            pix = doc[page_idx].get_pixmap(dpi=200)
+            result, _ = rapid_engine(pix.tobytes("png"))
+            if result:
+                lines = [line[1].strip() for line in result if line[1].strip()]
+                if lines:
+                    ocr_parts.append("\n".join(lines))
+        if ocr_parts:
+            return "\n\n".join(ocr_parts)
+    except Exception as rapid_err:
+        logger.warning(f"RapidOCR PDF fallback error: {rapid_err}")
+
+    # 2. Secondary fallback: Tesseract OCR
     import os
     import io
     import numpy as np
@@ -112,9 +132,6 @@ def _ocr_pdf_pages(doc: fitz.Document, max_pages: int = 5) -> str:
 
     zoom = 300 / 72
     matrix = fitz.Matrix(zoom, zoom)
-    ocr_parts = []
-
-    pages_to_ocr = min(len(doc), max_pages)
     for page_idx in range(pages_to_ocr):
         try:
             pix = doc[page_idx].get_pixmap(matrix=matrix)
@@ -164,25 +181,29 @@ def compact_bank_statement(text: str, tables: list) -> str:
     return compact_text
 
 
-def _preprocess_image_for_ocr(image_bytes: bytes):
-    """Lazy-load heavy OCR deps only when processing images."""
-    import cv2
-    import numpy as np
-
-    nparr = np.frombuffer(image_bytes, np.uint8)
-    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-
-    height, width = gray.shape
-    if height < 1000 or width < 1000:
-        gray = cv2.resize(gray, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
-
-    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-    return clahe.apply(gray)
-
-
 def extract_text_from_image(file_bytes: bytes) -> dict:
-    """Handle image files with Tesseract (lazy-loaded)."""
+    """Extract text from image files using RapidOCR (with Tesseract fallback)."""
+    # 1. Try RapidOCR first (CPU ONNX, high precision, handles skewed / low-res ID cards)
+    try:
+        from rapidocr_onnxruntime import RapidOCR
+        rapid_engine = RapidOCR()
+        result, _ = rapid_engine(file_bytes)
+        if result:
+            lines = [line[1].strip() for line in result if line[1].strip()]
+            text = "\n".join(lines)
+            if len(text.strip()) > 5:
+                return {
+                    "text": text,
+                    "tables": [],
+                    "page_count": 1,
+                    "has_text": True,
+                    "ocr_engine": "rapidocr",
+                    "needs_vision": False,
+                }
+    except Exception as rapid_err:
+        logger.warning(f"RapidOCR image extraction error: {rapid_err}")
+
+    # 2. Secondary fallback: Tesseract OCR
     try:
         import os
         import pytesseract
