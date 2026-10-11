@@ -928,6 +928,18 @@ function AiAnalysisPanel({ doc, ai, reprocessing, onReprocess, onRefresh, applic
             <ExtractedDataTable data={aiProcessing.extractedData} documentType={aiType} applicantName={applicantName} t={t} />
           )}
 
+          {/* Raw OCR Text */}
+          {(doc.ocr?.text || aiProcessing?.rawText || doc.ocrText) && (
+            <div className="mt-4">
+              <h4 className="text-xs font-bold text-charcoal-700 uppercase mb-2">Raw Extracted Text (OCR / PyMuPDF)</h4>
+              <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 max-h-48 overflow-y-auto">
+                <pre className="text-[11px] text-charcoal-600 whitespace-pre-wrap font-mono">
+                  {doc.ocr?.text || aiProcessing?.rawText || doc.ocrText}
+                </pre>
+              </div>
+            </div>
+          )}
+
           {/* Processed timestamp */}
           {aiProcessing.processedAt && (
             <p className="text-[10px] text-charcoal-400 mt-2">
